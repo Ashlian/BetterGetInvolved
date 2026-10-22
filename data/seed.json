@@ -1,0 +1,2282 @@
+{
+  "clubs": [
+    {
+      "id": "scarlet-ai-collective",
+      "name": "Scarlet AI Collective (Demo)",
+      "short_name": "SAC",
+      "category": "AI & Computing",
+      "description": "Explore machine learning through small, explainable projects, hands-on Python sessions, and discussion of how AI can help local communities. Members work in pairs, compare simple baselines, and examine model mistakes before presenting a result. This is a fictitious student organization for a product demonstration.",
+      "mission": "Make practical AI learning approachable while treating evidence, data consent, and community impact as part of technical work.",
+      "interests": [
+        "artificial intelligence",
+        "machine learning",
+        "Python",
+        "social impact",
+        "responsible AI"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Thursdays, 7:30–8:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to students from any major; no AI or programming background is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "scarlet-ai-collective@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Thursdays, 7:30–8:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students from any major; no AI or programming background is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Will I need a paid AI account or a powerful laptop?",
+          "answer": "The demo curriculum uses small public or synthetic datasets and local Python tools. No paid AI account or powerful GPU is needed for the introductory activities."
+        }
+      ],
+      "source_url": "/clubs/scarlet-ai-collective",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#D72C46",
+      "featured": true
+    },
+    {
+      "id": "code-for-common-good",
+      "name": "Code for Common Good (Demo)",
+      "short_name": "CCG",
+      "category": "AI & Computing",
+      "description": "Build useful web tools for imagined neighborhood needs, from accessible resource directories to volunteer sign-up prototypes. Small teams practice HTML, CSS, JavaScript, version control, and thoughtful product scoping with clear starter tasks. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help students learn software development through accessible civic technology projects and peer collaboration.",
+      "interests": [
+        "web development",
+        "coding",
+        "civic technology",
+        "accessibility",
+        "volunteering"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Tuesdays, 6:00–7:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to students of all majors, including first-time coders. These are synthetic membership examples, not university policies.",
+      "contact_email": "code-for-common-good@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Tuesdays, 6:00–7:30 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students of all majors, including first-time coders. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Can I help without knowing how to code?",
+          "answer": "Yes. Sample roles include interviewing hypothetical users, checking accessibility, writing clear content, and learning HTML with a peer mentor."
+        }
+      ],
+      "source_url": "/clubs/code-for-common-good",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#326BDA",
+      "featured": true
+    },
+    {
+      "id": "creative-computing-studio",
+      "name": "Creative Computing Studio (Demo)",
+      "short_name": "CCS",
+      "category": "AI & Computing",
+      "description": "Combine programming with visual art through generative sketches, interactive installations, and simple audio-reactive experiments. Members bring a small coding project and use critique sessions to improve both the interaction and the underlying implementation. This is a fictitious student organization for a product demonstration.",
+      "mission": "Connect creative practice and computing through playful, transparent interactive work.",
+      "interests": [
+        "creative coding",
+        "generative art",
+        "JavaScript",
+        "interaction design",
+        "digital art"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Fridays, 5:30–7:00 PM · sample schedule",
+      "beginner_friendly": false,
+      "membership_fee": "$8 per semester · sample dues only",
+      "eligibility": "Open to students who can edit and run a basic JavaScript sketch; no art portfolio is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "creative-computing-studio@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Fridays, 5:30–7:00 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $8 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students who can edit and run a basic JavaScript sketch; no art portfolio is required. This particular demo group expects the experience described above; introductory alternatives appear elsewhere in the directory."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "What software do the creative coding sessions use?",
+          "answer": "Sample sessions use browser-based p5.js sketches. Members should be comfortable changing variables and running a short JavaScript program."
+        }
+      ],
+      "source_url": "/clubs/creative-computing-studio",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#7950C6",
+      "featured": false
+    },
+    {
+      "id": "startup-sandbox",
+      "name": "Startup Sandbox (Demo)",
+      "short_name": "SS",
+      "category": "Entrepreneurship",
+      "description": "Test an idea before building a business. Members practice short customer interviews, sketch a basic value proposition, estimate costs, and share low-pressure pitches. Projects can be social ventures, local services, or simple campus tools. This is a fictitious student organization for a product demonstration.",
+      "mission": "Teach practical entrepreneurship through small experiments and honest feedback rather than promises of funding.",
+      "interests": [
+        "entrepreneurship",
+        "startups",
+        "customer research",
+        "pitching",
+        "social ventures"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 6:30–7:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to any student with curiosity about starting something; no business idea or company is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "startup-sandbox@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 6:30–7:30 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to any student with curiosity about starting something; no business idea or company is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do you provide startup funding or guaranteed investors?",
+          "answer": "No. This demo group offers sample peer feedback and practice activities only. It does not award money, introduce real investors, or guarantee business outcomes."
+        }
+      ],
+      "source_url": "/clubs/startup-sandbox",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#DC8430",
+      "featured": true
+    },
+    {
+      "id": "student-venture-kitchen",
+      "name": "Student Venture Kitchen (Demo)",
+      "short_name": "SVK",
+      "category": "Entrepreneurship",
+      "description": "A peer workshop for students already testing a product or service. Members bring an early prototype, review interview notes, compare pricing assumptions, and plan one measurable experiment before the next meeting. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help early student projects improve through structured experiments, constructive criticism, and responsible business choices.",
+      "interests": [
+        "entrepreneurship",
+        "prototyping",
+        "business models",
+        "product strategy",
+        "user research"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Mondays, 7:00–8:30 PM · sample schedule",
+      "beginner_friendly": false,
+      "membership_fee": "$10 per semester · sample dues only",
+      "eligibility": "Open to students with an early prototype or a documented customer interview; an incorporated business is not required. These are synthetic membership examples, not university policies.",
+      "contact_email": "student-venture-kitchen@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Mondays, 7:00–8:30 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $10 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students with an early prototype or a documented customer interview; an incorporated business is not required. This particular demo group expects the experience described above; introductory alternatives appear elsewhere in the directory."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "What should I bring to a venture workshop?",
+          "answer": "Bring a rough prototype or customer interview notes and one specific question you want peers to help test. The sample workshop does not provide legal or investment advice."
+        }
+      ],
+      "source_url": "/clubs/student-venture-kitchen",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#B45E38",
+      "featured": false
+    },
+    {
+      "id": "neighborhood-service-circle",
+      "name": "Neighborhood Service Circle (Demo)",
+      "short_name": "NSC",
+      "category": "Volunteering",
+      "description": "Practice the logistics of local service through fictional care-kit packing, community resource mapping, and reflection sessions. Members learn how to ask a partner what is needed, divide tasks fairly, and avoid assuming that a project automatically helps. This is a fictitious student organization for a product demonstration.",
+      "mission": "Encourage consistent, community-informed volunteering and respectful teamwork.",
+      "interests": [
+        "volunteering",
+        "community service",
+        "social impact",
+        "organizing",
+        "community outreach"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Saturdays, 10:00–11:00 AM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; no previous volunteer experience is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "neighborhood-service-circle@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Saturdays, 10:00–11:00 AM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no previous volunteer experience is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Does this demo count toward official volunteer hours?",
+          "answer": "No. All sample service activities are fictional. BetterGetInvolved does not certify volunteer hours or claim a partnership with a community organization."
+        }
+      ],
+      "source_url": "/clubs/neighborhood-service-circle",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#33987B",
+      "featured": true
+    },
+    {
+      "id": "campus-food-share",
+      "name": "Campus Food Share Lab (Demo)",
+      "short_name": "CFSL",
+      "category": "Volunteering",
+      "description": "Explore food access and waste reduction through sample meal-planning, pantry resource mapping, and supply-drive planning. Discussions center on dignity, clear information, and what students would need to verify before running an actual food program. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help students understand food access and design respectful, practical service ideas.",
+      "interests": [
+        "food access",
+        "volunteering",
+        "sustainability",
+        "community service",
+        "public health"
+      ],
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "meeting_schedule": "Tuesdays, 5:00–6:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to students from any major; no food-service experience is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "campus-food-share@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Tuesdays, 5:00–6:00 PM at Douglass Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students from any major; no food-service experience is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Can I pick up food through this club listing?",
+          "answer": "No. This is a fictional planning group and does not distribute food. The sample events do not represent an operating pantry or an emergency food resource."
+        }
+      ],
+      "source_url": "/clubs/campus-food-share",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#C68B29",
+      "featured": false
+    },
+    {
+      "id": "river-stewards",
+      "name": "River Stewards Workshop (Demo)",
+      "short_name": "RSW",
+      "category": "Volunteering",
+      "description": "Learn about local watershed care using sample litter-audit sheets, water-quality demonstrations, and planning exercises for responsible outdoor service. Members connect environmental questions with realistic safety, transportation, and waste-disposal planning. This is a fictitious student organization for a product demonstration.",
+      "mission": "Build environmental awareness and careful service habits through watershed-focused learning.",
+      "interests": [
+        "environment",
+        "conservation",
+        "volunteering",
+        "water quality",
+        "outdoors"
+      ],
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "meeting_schedule": "Sundays, 11:00 AM–12:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; outdoor sample activities have an indoor learning alternative. These are synthetic membership examples, not university policies.",
+      "contact_email": "river-stewards@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Sundays, 11:00 AM–12:00 PM at Cook Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; outdoor sample activities have an indoor learning alternative. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Are river cleanup activities guaranteed to happen in bad weather?",
+          "answer": "No. The demo calendar includes a cancelled outdoor cleanup example. Sample outdoor plans depend on weather, and the directory should always show the event status."
+        }
+      ],
+      "source_url": "/clubs/river-stewards",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#298F91",
+      "featured": false
+    },
+    {
+      "id": "after-hours-ensemble",
+      "name": "After Hours Ensemble (Demo)",
+      "short_name": "AHE",
+      "category": "Arts & Music",
+      "description": "A small collaborative music workshop for students who already play an instrument or sing comfortably. Members bring short arrangements, listen across styles, and rehearse in a supportive setting with an emphasis on reliable ensemble practice. This is a fictitious student organization for a product demonstration.",
+      "mission": "Create room for student musicians to collaborate, listen carefully, and share original arrangements.",
+      "interests": [
+        "music",
+        "live performance",
+        "songwriting",
+        "collaboration",
+        "jazz"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 7:00–8:30 PM · sample schedule",
+      "beginner_friendly": false,
+      "membership_fee": "$12 per semester · sample dues only",
+      "eligibility": "Open to students with basic experience playing an instrument or singing in a group; no formal audition is modeled. These are synthetic membership examples, not university policies.",
+      "contact_email": "after-hours-ensemble@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 7:00–8:30 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $12 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students with basic experience playing an instrument or singing in a group; no formal audition is modeled. This particular demo group expects the experience described above; introductory alternatives appear elsewhere in the directory."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do you lend instruments?",
+          "answer": "Instrument loans are not listed in the demo profile. Sample players bring their own instrument where practical; do not assume equipment is available."
+        }
+      ],
+      "source_url": "/clubs/after-hours-ensemble",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#B84576",
+      "featured": false
+    },
+    {
+      "id": "visual-story-lab",
+      "name": "Visual Story Lab (Demo)",
+      "short_name": "VSL",
+      "category": "Arts & Music",
+      "description": "Tell stories through photography, collage, illustration, and short zines. Sessions use approachable prompts and respectful critique, with options for students who work on paper or use a phone instead of specialist equipment. This is a fictitious student organization for a product demonstration.",
+      "mission": "Make visual storytelling welcoming and help students develop a creative practice without expensive gear.",
+      "interests": [
+        "art",
+        "photography",
+        "illustration",
+        "zines",
+        "storytelling"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Mondays, 5:30–6:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "$5 per semester · sample dues only",
+      "eligibility": "Open to all students; a phone camera, pencil, or interest in visual storytelling is enough. These are synthetic membership examples, not university policies.",
+      "contact_email": "visual-story-lab@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Mondays, 5:30–6:30 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $5 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; a phone camera, pencil, or interest in visual storytelling is enough. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do I need an expensive camera or art supplies?",
+          "answer": "No. Sample prompts can be completed with a phone camera or pencil and paper. Paid editing software and specialist cameras are not required."
+        }
+      ],
+      "source_url": "/clubs/visual-story-lab",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#C85E42",
+      "featured": true
+    },
+    {
+      "id": "improv-lab",
+      "name": "Open Stage Improv Lab (Demo)",
+      "short_name": "OSIL",
+      "category": "Arts & Music",
+      "description": "Try low-pressure improvisation games, scene-building exercises, and playful public speaking. Sessions emphasize consent, the option to observe, and a supportive audience so students can experiment without needing performance experience. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help students practice listening, collaboration, and confidence through accessible improv activities.",
+      "interests": [
+        "improv",
+        "theater",
+        "public speaking",
+        "comedy",
+        "creative confidence"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Fridays, 6:00–7:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; no acting experience or audition is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "improv-lab@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Fridays, 6:00–7:00 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no acting experience or audition is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Can I watch before taking part?",
+          "answer": "Yes. Observing is welcome in the sample sessions, and members can pass on any game. Participation should stay comfortable and consensual."
+        }
+      ],
+      "source_url": "/clubs/improv-lab",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#D79032",
+      "featured": false
+    },
+    {
+      "id": "global-table",
+      "name": "Global Table Exchange (Demo)",
+      "short_name": "GTE",
+      "category": "Cultural",
+      "description": "Share everyday cultural stories through facilitated conversation, recipe storytelling, and themed discussion. The fictional group welcomes students who want to listen, ask thoughtful questions, and build friendships without treating anyone as a spokesperson for a culture. This is a fictitious student organization for a product demonstration.",
+      "mission": "Support cross-cultural friendship through respectful curiosity and shared stories.",
+      "interests": [
+        "culture",
+        "international friendship",
+        "food stories",
+        "conversation",
+        "community"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Thursdays, 6:00–7:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students of all backgrounds; sharing personal experiences is optional. These are synthetic membership examples, not university policies.",
+      "contact_email": "global-table@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Thursdays, 6:00–7:00 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students of all backgrounds; sharing personal experiences is optional. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do I have to bring food or represent a culture?",
+          "answer": "No. The sample exchange uses conversation prompts and recipe stories; no food purchase or personal cultural presentation is required."
+        }
+      ],
+      "source_url": "/clubs/global-table",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#C86842",
+      "featured": false
+    },
+    {
+      "id": "heritage-story-circle",
+      "name": "Heritage Story Circle (Demo)",
+      "short_name": "HSC",
+      "category": "Cultural",
+      "description": "Explore identity, family stories, and oral-history techniques in a small discussion group. Members choose what to share and practice asking permission before taking notes, recording, or repeating someone else's story. This is a fictitious student organization for a product demonstration.",
+      "mission": "Create a respectful space for personal storytelling and careful oral-history practice.",
+      "interests": [
+        "culture",
+        "identity",
+        "oral history",
+        "writing",
+        "storytelling"
+      ],
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 5:00–6:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; no particular heritage, identity, or writing background is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "heritage-story-circle@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 5:00–6:00 PM at Douglass Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no particular heritage, identity, or writing background is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Are personal stories recorded or published?",
+          "answer": "No recording or publication is part of the sample meetings. Any real project would need separate, specific permission from the person sharing a story."
+        }
+      ],
+      "source_url": "/clubs/heritage-story-circle",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#8C60A1",
+      "featured": false
+    },
+    {
+      "id": "language-exchange",
+      "name": "Conversation Compass (Demo)",
+      "short_name": "CC",
+      "category": "Cultural",
+      "description": "Practice informal language conversation with patient peers using everyday prompts and rotating small groups. Activities welcome beginners, bilingual students, and listeners while making clear that peer conversation is different from a formal language course. This is a fictitious student organization for a product demonstration.",
+      "mission": "Connect students through low-pressure language practice and mutual cultural learning.",
+      "interests": [
+        "languages",
+        "conversation",
+        "culture",
+        "international friendship",
+        "peer learning"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Tuesdays, 7:00–8:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to learners and speakers at any proficiency level; attendance does not require fluency. These are synthetic membership examples, not university policies.",
+      "contact_email": "language-exchange@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Tuesdays, 7:00–8:00 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to learners and speakers at any proficiency level; attendance does not require fluency. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Can I attend if I only know a few words?",
+          "answer": "Yes. Beginner prompts, listening, and short introductions are part of the sample format. The demo does not promise that a speaker of every language will attend."
+        }
+      ],
+      "source_url": "/clubs/language-exchange",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#4F8FA9",
+      "featured": false
+    },
+    {
+      "id": "trail-and-trek",
+      "name": "Trail and Trek Circle (Demo)",
+      "short_name": "TTC",
+      "category": "Recreation & Outdoors",
+      "description": "Plan longer recreational walks and practice outdoor preparation with a focus on pacing, route choices, and leave-no-trace habits. Sample outings assume members are comfortable walking four miles; planning meetings explain route and equipment expectations. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help students enjoy outdoor recreation with realistic preparation and respect for shared spaces.",
+      "interests": [
+        "hiking",
+        "outdoors",
+        "walking",
+        "nature",
+        "conservation"
+      ],
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "meeting_schedule": "Saturdays, 9:00–10:30 AM · sample schedule",
+      "beginner_friendly": false,
+      "membership_fee": "$10 per semester · sample dues only",
+      "eligibility": "Open to students comfortable walking about four miles; introductory campus walks are offered by Campus Movement Circle. These are synthetic membership examples, not university policies.",
+      "contact_email": "trail-and-trek@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Saturdays, 9:00–10:30 AM at Cook Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $10 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students comfortable walking about four miles; introductory campus walks are offered by Campus Movement Circle. This particular demo group expects the experience described above; introductory alternatives appear elsewhere in the directory."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do sample dues include transportation or equipment?",
+          "answer": "No. The fictional $10 semester dues do not include transportation, footwear, or equipment. Each sample event lists its own cost; no actual trip is booked."
+        }
+      ],
+      "source_url": "/clubs/trail-and-trek",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#5C8854",
+      "featured": false
+    },
+    {
+      "id": "campus-movement",
+      "name": "Campus Movement Circle (Demo)",
+      "short_name": "CMC",
+      "category": "Recreation & Outdoors",
+      "description": "Make room for approachable movement through relaxed campus walks, seated stretch breaks, and social check-ins. The group focuses on connection and personal pace, with no competitive training plan, weigh-ins, or requirement to perform a particular movement. This is a fictitious student organization for a product demonstration.",
+      "mission": "Offer welcoming social movement and help students find an activity that fits their comfort level.",
+      "interests": [
+        "walking",
+        "fitness",
+        "wellbeing",
+        "friendship",
+        "outdoors"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Mondays, 4:30–5:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; sample activities include seated alternatives and optional participation. These are synthetic membership examples, not university policies.",
+      "contact_email": "campus-movement@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Mondays, 4:30–5:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; sample activities include seated alternatives and optional participation. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Is this a competitive sports team?",
+          "answer": "No. Sample activities are social and noncompetitive, with personal pacing and seated alternatives. The group does not provide medical or exercise treatment."
+        }
+      ],
+      "source_url": "/clubs/campus-movement",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#42A182",
+      "featured": false
+    },
+    {
+      "id": "board-game-grove",
+      "name": "Board Game Grove (Demo)",
+      "short_name": "BGG",
+      "category": "Gaming",
+      "description": "Meet peers through cooperative board games, short strategy games, and teach-as-you-play tables. Hosts explain rules before each sample game and make space for quiet observers, with an emphasis on friendly play over rankings. This is a fictitious student organization for a product demonstration.",
+      "mission": "Make tabletop gaming a welcoming way to meet people and learn together.",
+      "interests": [
+        "board games",
+        "tabletop",
+        "strategy",
+        "cooperative games",
+        "friendship"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Fridays, 7:00–9:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "$5 per semester · sample dues only",
+      "eligibility": "Open to all students; no game ownership or prior rules knowledge is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "board-game-grove@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Fridays, 7:00–9:00 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $5 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no game ownership or prior rules knowledge is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do I need to own a board game?",
+          "answer": "No. The sample game night assumes shared demonstration games and a rules explanation at each table. No real game inventory or equipment loan is promised."
+        }
+      ],
+      "source_url": "/clubs/board-game-grove",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#A06A3F",
+      "featured": true
+    },
+    {
+      "id": "cozy-digital-gaming",
+      "name": "Cozy Digital Gaming Circle (Demo)",
+      "short_name": "CDGC",
+      "category": "Gaming",
+      "description": "Discuss relaxing video games, accessibility settings, and cooperative play in a friendly social space. Members can join the conversation without owning a console, buying a game, or taking part in competitive voice chat. This is a fictitious student organization for a product demonstration.",
+      "mission": "Create a low-pressure gaming community that values kindness, accessibility, and flexible participation.",
+      "interests": [
+        "video games",
+        "cooperative games",
+        "accessibility",
+        "friendship",
+        "casual gaming"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Saturdays, 3:00–4:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; a gaming device or paid game account is not required for discussions. These are synthetic membership examples, not university policies.",
+      "contact_email": "cozy-digital-gaming@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Saturdays, 3:00–4:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; a gaming device or paid game account is not required for discussions. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do I have to play competitive games or buy a console?",
+          "answer": "No. The sample format centers on discussion and optional cooperative play. Competitive rankings, a console purchase, and paid games are not membership requirements."
+        }
+      ],
+      "source_url": "/clubs/cozy-digital-gaming",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#8272BF",
+      "featured": false
+    },
+    {
+      "id": "career-peer-circle",
+      "name": "Career Peer Circle (Demo)",
+      "short_name": "CPC",
+      "category": "Professional",
+      "description": "Practice resumes, introductions, and interview questions with other students. Sessions use example job descriptions and peer feedback, with clear reminders that a student workshop cannot guarantee a job, internship, or recruiter connection. This is a fictitious student organization for a product demonstration.",
+      "mission": "Help students practice career communication through accessible peer support and realistic expectations.",
+      "interests": [
+        "careers",
+        "resume",
+        "interview practice",
+        "networking",
+        "professional development"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Tuesdays, 6:00–7:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all majors and class years; no existing resume or internship experience is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "career-peer-circle@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Tuesdays, 6:00–7:00 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all majors and class years; no existing resume or internship experience is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Will a workshop guarantee an internship or recruiter meeting?",
+          "answer": "No. The demo offers fictional peer practice only, with no employer partnership, guaranteed internship, or promised recruiter attendance."
+        }
+      ],
+      "source_url": "/clubs/career-peer-circle",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#426F9D",
+      "featured": false
+    },
+    {
+      "id": "product-design-network",
+      "name": "Product Design Workshop (Demo)",
+      "short_name": "PDW",
+      "category": "Professional",
+      "description": "Bring a rough interface or portfolio case study for structured design critique. Members examine usability, accessible interaction, and the evidence behind a design decision before refining a prototype and describing what changed. This is a fictitious student organization for a product demonstration.",
+      "mission": "Improve student product design through specific, respectful critique grounded in user needs.",
+      "interests": [
+        "UX design",
+        "product design",
+        "prototyping",
+        "accessibility",
+        "portfolio"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Thursdays, 5:30–7:00 PM · sample schedule",
+      "beginner_friendly": false,
+      "membership_fee": "$8 per semester · sample dues only",
+      "eligibility": "Open to students who can bring a rough interface sketch, prototype, or case study; professional experience is not required. These are synthetic membership examples, not university policies.",
+      "contact_email": "product-design-network@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Thursdays, 5:30–7:00 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $8 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students who can bring a rough interface sketch, prototype, or case study; professional experience is not required. This particular demo group expects the experience described above; introductory alternatives appear elsewhere in the directory."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "What should I bring to a portfolio critique?",
+          "answer": "Bring a rough interface sketch, prototype, or case study and one question about usability. The sample critique is peer feedback, not a hiring review."
+        }
+      ],
+      "source_url": "/clubs/product-design-network",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#487FAD",
+      "featured": false
+    },
+    {
+      "id": "first-gen-pathways",
+      "name": "First Steps Peer Network (Demo)",
+      "short_name": "FSPN",
+      "category": "Professional",
+      "description": "Build confidence navigating college through peer conversation about office hours, asking for help, and planning a manageable week. The group especially welcomes first-generation students while keeping participation open to students seeking a supportive campus network. This is a fictitious student organization for a product demonstration.",
+      "mission": "Make college questions easier to ask through practical, welcoming peer connection.",
+      "interests": [
+        "first-generation students",
+        "peer support",
+        "college transition",
+        "friendship",
+        "professional development"
+      ],
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 6:00–7:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; first-generation students and those new to campus are especially welcome. These are synthetic membership examples, not university policies.",
+      "contact_email": "first-gen-pathways@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 6:00–7:00 PM at College Avenue Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; first-generation students and those new to campus are especially welcome. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Does the group award scholarships or determine financial aid?",
+          "answer": "No. This fictional peer group does not award scholarships, calculate tuition, or determine financial aid. Its sample activities focus on conversation and college navigation."
+        }
+      ],
+      "source_url": "/clubs/first-gen-pathways",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#A76E53",
+      "featured": false
+    },
+    {
+      "id": "discovery-science-society",
+      "name": "Discovery Science Society (Demo)",
+      "short_name": "DSS",
+      "category": "Science",
+      "description": "Explore scientific questions through short paper discussions, simple demonstrations, and explanations across disciplines. Members practice distinguishing evidence from speculation and translating an unfamiliar result into clear language for a peer audience. This is a fictitious student organization for a product demonstration.",
+      "mission": "Make scientific curiosity and careful reasoning accessible across majors.",
+      "interests": [
+        "science",
+        "research",
+        "science communication",
+        "experiments",
+        "peer learning"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Mondays, 6:00–7:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; sample sessions assume no laboratory experience or advanced coursework. These are synthetic membership examples, not university policies.",
+      "contact_email": "discovery-science-society@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Mondays, 6:00–7:00 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; sample sessions assume no laboratory experience or advanced coursework. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Does joining provide a research lab position?",
+          "answer": "No. The sample group discusses research and scientific reasoning but does not place students in labs, provide research credit, or promise faculty supervision."
+        }
+      ],
+      "source_url": "/clubs/discovery-science-society",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#397B94",
+      "featured": false
+    },
+    {
+      "id": "skywatch-lab",
+      "name": "Skywatch Learning Circle (Demo)",
+      "short_name": "SLC",
+      "category": "Science",
+      "description": "Learn the night sky through star-chart practice, short astronomy talks, and weather-aware observation planning. Indoor activities use sky maps so newcomers can explore astronomy without owning a telescope or relying on clear weather. This is a fictitious student organization for a product demonstration.",
+      "mission": "Share astronomy through approachable sky literacy and thoughtful observation planning.",
+      "interests": [
+        "astronomy",
+        "space",
+        "science",
+        "stargazing",
+        "outdoors"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Thursdays, 8:00–9:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "$6 per semester · sample dues only",
+      "eligibility": "Open to all students; no telescope, physics course, or previous astronomy experience is needed. These are synthetic membership examples, not university policies.",
+      "contact_email": "skywatch-lab@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Thursdays, 8:00–9:00 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $6 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no telescope, physics course, or previous astronomy experience is needed. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Do I need my own telescope?",
+          "answer": "No. Sample indoor sessions use star charts and sky maps. Any real outdoor observation would require confirmed equipment access and weather conditions."
+        }
+      ],
+      "source_url": "/clubs/skywatch-lab",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#485B9D",
+      "featured": false
+    },
+    {
+      "id": "bioexplorers",
+      "name": "Bioexplorers Journal Circle (Demo)",
+      "short_name": "BJC",
+      "category": "Science",
+      "description": "Read accessible biology stories and practice describing an experiment's question, method, and limitations. Sample topics include microbes, plant adaptation, and ecosystems, with discussion rather than unsupervised wet-lab experiments. This is a fictitious student organization for a product demonstration.",
+      "mission": "Encourage biological curiosity and careful reading of scientific claims.",
+      "interests": [
+        "biology",
+        "ecology",
+        "research",
+        "science communication",
+        "nature"
+      ],
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "meeting_schedule": "Fridays, 4:00–5:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; no biology major, laboratory access, or previous journal-club experience is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "bioexplorers@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Fridays, 4:00–5:00 PM at Cook Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no biology major, laboratory access, or previous journal-club experience is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Are there hands-on wet-lab experiments?",
+          "answer": "No. The demo activities are readings, diagrams, and discussion. No live cultures, chemicals, laboratory access, or research credit are provided."
+        }
+      ],
+      "source_url": "/clubs/bioexplorers",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#568E72",
+      "featured": false
+    },
+    {
+      "id": "mindful-minute",
+      "name": "Mindful Minute Circle (Demo)",
+      "short_name": "MMC",
+      "category": "Wellbeing",
+      "description": "Try optional quiet reflection, short breathing exercises, and gentle journaling prompts with peers. Sessions offer the choice to observe or step away and describe themselves as a social practice space, without presenting peer activities as clinical care. This is a fictitious student organization for a product demonstration.",
+      "mission": "Create a calm, inclusive peer space for everyday reflection and connection.",
+      "interests": [
+        "mindfulness",
+        "journaling",
+        "wellbeing",
+        "stress management",
+        "quiet activities"
+      ],
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "meeting_schedule": "Mondays, 5:00–6:00 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; no meditation experience or personal disclosure is required. These are synthetic membership examples, not university policies.",
+      "contact_email": "mindful-minute@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Mondays, 5:00–6:00 PM at Douglass Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; no meditation experience or personal disclosure is required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Is this counseling or mental health treatment?",
+          "answer": "No. This fictional group offers optional peer reflection activities, not counseling, diagnosis, crisis support, or mental health treatment. Personal sharing is optional."
+        }
+      ],
+      "source_url": "/clubs/mindful-minute",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#7A956A",
+      "featured": true
+    },
+    {
+      "id": "peer-wellbeing-circle",
+      "name": "Peer Balance Circle (Demo)",
+      "short_name": "PBC",
+      "category": "Wellbeing",
+      "description": "Talk about routines, study breaks, and making time for connection through structured peer discussion. Sample activities include a weekly planning worksheet, a screen-break brainstorm, and realistic goal-setting with no expectation to share personal health information. This is a fictitious student organization for a product demonstration.",
+      "mission": "Support everyday student connection and manageable habits through nonclinical peer activities.",
+      "interests": [
+        "wellbeing",
+        "peer support",
+        "time management",
+        "study breaks",
+        "friendship"
+      ],
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 4:30–5:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to all students; participants can listen without sharing personal experiences. These are synthetic membership examples, not university policies.",
+      "contact_email": "peer-wellbeing-circle@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 4:30–5:30 PM at Livingston Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; participants can listen without sharing personal experiences. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Will my personal health information be collected?",
+          "answer": "The sample activities do not request health information. This is a nonclinical peer group; participants can observe, and the demo does not offer confidential counseling."
+        }
+      ],
+      "source_url": "/clubs/peer-wellbeing-circle",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#5F9D92",
+      "featured": false
+    },
+    {
+      "id": "repair-and-reuse",
+      "name": "Repair and Reuse Studio (Demo)",
+      "short_name": "RRS",
+      "category": "Volunteering",
+      "description": "Learn basic mending, reuse design, and repair decision-making with sample fabric projects and nonpowered objects. Members discuss when a repair is sensible and when a specialist is needed, with clear boundaries around electrical or hazardous items. This is a fictitious student organization for a product demonstration.",
+      "mission": "Reduce waste through approachable repair skills and thoughtful reuse.",
+      "interests": [
+        "sustainability",
+        "repair",
+        "crafts",
+        "volunteering",
+        "reuse"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Saturdays, 1:00–2:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "$7 per semester · sample dues only",
+      "eligibility": "Open to all students; beginner sample projects use fabric scraps and nonpowered objects. These are synthetic membership examples, not university policies.",
+      "contact_email": "repair-and-reuse@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Saturdays, 1:00–2:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is $7 per semester. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to all students; beginner sample projects use fabric scraps and nonpowered objects. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Can I bring electronics or damaged batteries?",
+          "answer": "No. The sample workshop does not accept electrical devices, batteries, or hazardous items. Activities focus on basic fabric mending and nonpowered reuse projects."
+        }
+      ],
+      "source_url": "/clubs/repair-and-reuse",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#809447",
+      "featured": false
+    },
+    {
+      "id": "community-data-lab",
+      "name": "Community Data Studio (Demo)",
+      "short_name": "CDS",
+      "category": "AI & Computing",
+      "description": "Use spreadsheets and introductory Python to explore public-interest questions with synthetic or public data. Members practice cleaning a table, choosing a useful chart, checking missing values, and explaining uncertainty before suggesting a conclusion. This is a fictitious student organization for a product demonstration.",
+      "mission": "Build practical data literacy for careful, evidence-based community questions.",
+      "interests": [
+        "data science",
+        "statistics",
+        "Python",
+        "social impact",
+        "data visualization"
+      ],
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "meeting_schedule": "Wednesdays, 7:00–8:30 PM · sample schedule",
+      "beginner_friendly": true,
+      "membership_fee": "Free · sample dues only",
+      "eligibility": "Open to students of all majors; spreadsheet familiarity is helpful but not required. These are synthetic membership examples, not university policies.",
+      "contact_email": "community-data-lab@example.org",
+      "website": "",
+      "instagram": "",
+      "discord": "",
+      "faqs": [
+        {
+          "question": "When and where do you meet?",
+          "answer": "Our sample meeting is Wednesdays, 7:00–8:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+        },
+        {
+          "question": "How much does membership cost?",
+          "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+        },
+        {
+          "question": "Who can join, and do beginners need experience?",
+          "answer": "Open to students of all majors; spreadsheet familiarity is helpful but not required. Beginners are welcome, and sample activities include an introduction."
+        },
+        {
+          "question": "How do I join or contact the club?",
+          "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+        },
+        {
+          "question": "Will we work with private student records?",
+          "answer": "No. The demo curriculum uses synthetic or public example tables. It does not provide private student records, individual grades, or student contact lists."
+        }
+      ],
+      "source_url": "/clubs/community-data-lab",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "verification": "demo",
+      "color": "#487CA4",
+      "featured": false
+    }
+  ],
+  "events": [
+    {
+      "id": "product-design-network-2026-10-22",
+      "club_id": "product-design-network",
+      "club_name": "Product Design Workshop (Demo)",
+      "title": "Interface Critique Roundtable (Demo)",
+      "description": "Bring a rough interface sketch and one usability question for structured peer feedback. Observers can follow the critique checklist. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-22T17:30:00-04:00",
+      "ends_at": "2026-10-22T19:00:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": false,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/product-design-network-2026-10-22",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "global-table-2026-10-22",
+      "club_id": "global-table",
+      "club_name": "Global Table Exchange (Demo)",
+      "title": "Stories Around the Table (Demo)",
+      "description": "Use optional conversation prompts to share everyday cultural stories. No food purchase or personal presentation is expected. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-22T18:00:00-04:00",
+      "ends_at": "2026-10-22T19:00:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/global-table-2026-10-22",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "scarlet-ai-collective-2026-10-22",
+      "club_id": "scarlet-ai-collective",
+      "club_name": "Scarlet AI Collective (Demo)",
+      "title": "Your First Tiny AI Project (Demo)",
+      "description": "Pair up to inspect a synthetic dataset, compare a simple baseline, and explain one model mistake. No coding experience or paid AI account is needed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-22T19:30:00-04:00",
+      "ends_at": "2026-10-22T20:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/scarlet-ai-collective-2026-10-22",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "skywatch-lab-2026-10-22",
+      "club_id": "skywatch-lab",
+      "club_name": "Skywatch Learning Circle (Demo)",
+      "title": "Find Your Way Around a Star Chart (Demo)",
+      "description": "Practice reading an indoor sky map and planning a weather-dependent observation. No telescope is needed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-22T20:00:00-04:00",
+      "ends_at": "2026-10-22T21:00:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/skywatch-lab-2026-10-22",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "creative-computing-studio-2026-10-23",
+      "club_id": "creative-computing-studio",
+      "club_name": "Creative Computing Studio (Demo)",
+      "title": "Code a Generative Poster (Demo)",
+      "description": "Edit a short JavaScript sketch to create a repeatable visual pattern. Bring a laptop able to run a browser and basic JavaScript familiarity. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-23T17:30:00-04:00",
+      "ends_at": "2026-10-23T19:00:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": false,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/creative-computing-studio-2026-10-23",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "improv-lab-2026-10-23",
+      "club_id": "improv-lab",
+      "club_name": "Open Stage Improv Lab (Demo)",
+      "title": "Low-Pressure Improv Games (Demo)",
+      "description": "Try short listening and scene-building games, or observe first. Anyone can pass on an exercise. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-23T18:00:00-04:00",
+      "ends_at": "2026-10-23T19:00:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/improv-lab-2026-10-23",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "trail-and-trek-2026-10-24",
+      "club_id": "trail-and-trek",
+      "club_name": "Trail and Trek Circle (Demo)",
+      "title": "Four-Mile Walk Planning Session (Demo)",
+      "description": "Plan the pacing, route questions, and equipment for a hypothetical four-mile walk. This is an indoor planning session; no transport or trip is booked. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-24T09:00:00-04:00",
+      "ends_at": "2026-10-24T10:30:00-04:00",
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "category": "Outdoors",
+      "cost": 0,
+      "beginner_friendly": false,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/trail-and-trek-2026-10-24",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "neighborhood-service-circle-2026-10-24",
+      "club_id": "neighborhood-service-circle",
+      "club_name": "Neighborhood Service Circle (Demo)",
+      "title": "Plan a Community Care Kit (Demo)",
+      "description": "Work through a fictional care-kit checklist and practice asking a community partner what is actually needed. No real supplies are collected. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-24T10:00:00-04:00",
+      "ends_at": "2026-10-24T11:00:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Service",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/neighborhood-service-circle-2026-10-24",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "board-game-grove-2026-10-24",
+      "club_id": "board-game-grove",
+      "club_name": "Board Game Grove (Demo)",
+      "title": "Teach-and-Play Tabletop Night (Demo)",
+      "description": "Explore a cooperative game format with a rules explanation and a quiet observer option. No game ownership is needed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-24T19:00:00-04:00",
+      "ends_at": "2026-10-24T21:00:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/board-game-grove-2026-10-24",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "river-stewards-2026-10-25",
+      "club_id": "river-stewards",
+      "club_name": "River Stewards Workshop (Demo)",
+      "title": "River Cleanup Planning Walk (Demo)",
+      "description": "Cancelled sample: an outdoor litter-audit exercise illustrates how weather-related cancellations appear in the directory. No real cleanup is scheduled. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-25T11:00:00-04:00",
+      "ends_at": "2026-10-25T12:00:00-04:00",
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "category": "Service",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/river-stewards-2026-10-25",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "cancelled",
+      "is_demo": true
+    },
+    {
+      "id": "campus-movement-2026-10-26",
+      "club_id": "campus-movement",
+      "club_name": "Campus Movement Circle (Demo)",
+      "title": "Walk, Stretch, and Meet Someone (Demo)",
+      "description": "Explore a relaxed campus-walk format with personal pacing and seated stretch alternatives. No competitive fitness targets are used. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-26T16:30:00-04:00",
+      "ends_at": "2026-10-26T17:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Wellbeing",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/campus-movement-2026-10-26",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "mindful-minute-2026-10-26",
+      "club_id": "mindful-minute",
+      "club_name": "Mindful Minute Circle (Demo)",
+      "title": "Quiet Journaling and Reflection (Demo)",
+      "description": "Try optional journaling and quiet reflection. Participants can observe or step away; this peer activity is not clinical care. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-26T17:00:00-04:00",
+      "ends_at": "2026-10-26T18:00:00-04:00",
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "category": "Wellbeing",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/mindful-minute-2026-10-26",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "visual-story-lab-2026-10-26",
+      "club_id": "visual-story-lab",
+      "club_name": "Visual Story Lab (Demo)",
+      "title": "Make a One-Page Zine (Demo)",
+      "description": "Use a pencil, paper, and a storytelling prompt to sketch a one-page zine. The fictional $2 materials cost is not collected. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-26T17:30:00-04:00",
+      "ends_at": "2026-10-26T18:30:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Creative",
+      "cost": 2,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/visual-story-lab-2026-10-26",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "discovery-science-society-2026-10-26",
+      "club_id": "discovery-science-society",
+      "club_name": "Discovery Science Society (Demo)",
+      "title": "Explain a Scientific Claim (Demo)",
+      "description": "Read a short sample research summary and separate the question, evidence, and limitations. No laboratory experience is required. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-26T18:00:00-04:00",
+      "ends_at": "2026-10-26T19:00:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Discussion",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/discovery-science-society-2026-10-26",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "student-venture-kitchen-2026-10-26",
+      "club_id": "student-venture-kitchen",
+      "club_name": "Student Venture Kitchen (Demo)",
+      "title": "Test One Business Assumption (Demo)",
+      "description": "Bring an early prototype or customer interview notes. Peers help define one small experiment without promising investment or professional advice. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-26T19:00:00-04:00",
+      "ends_at": "2026-10-26T20:30:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": false,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/student-venture-kitchen-2026-10-26",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "campus-food-share-2026-10-27",
+      "club_id": "campus-food-share",
+      "club_name": "Campus Food Share Lab (Demo)",
+      "title": "Map Food-Access Questions (Demo)",
+      "description": "Use fictional resource cards to identify what must be verified before sharing food-access information. This event does not distribute food. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-27T17:00:00-04:00",
+      "ends_at": "2026-10-27T18:00:00-04:00",
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "category": "Service",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/campus-food-share-2026-10-27",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "career-peer-circle-2026-10-27",
+      "club_id": "career-peer-circle",
+      "club_name": "Career Peer Circle (Demo)",
+      "title": "Resume Practice With a Peer (Demo)",
+      "description": "Use an example job description to improve a draft resume or start from a blank template. No recruiter attendance or employment outcome is promised. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-27T18:00:00-04:00",
+      "ends_at": "2026-10-27T19:00:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Career",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/career-peer-circle-2026-10-27",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "code-for-common-good-2026-10-27",
+      "club_id": "code-for-common-good",
+      "club_name": "Code for Common Good (Demo)",
+      "title": "Build a Helpful Campus Web Page (Demo)",
+      "description": "Start an accessible resource-page prototype with basic HTML and clear content. Noncoding roles and first-time coders are welcome. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-27T18:00:00-04:00",
+      "ends_at": "2026-10-27T19:30:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/code-for-common-good-2026-10-27",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "language-exchange-2026-10-27",
+      "club_id": "language-exchange",
+      "club_name": "Conversation Compass (Demo)",
+      "title": "Beginner Conversation Tables (Demo)",
+      "description": "Practice greetings and everyday questions in small groups with a listening option. The sample does not guarantee any particular language speaker. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-27T19:00:00-04:00",
+      "ends_at": "2026-10-27T20:00:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/language-exchange-2026-10-27",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "peer-wellbeing-circle-2026-10-28",
+      "club_id": "peer-wellbeing-circle",
+      "club_name": "Peer Balance Circle (Demo)",
+      "title": "Make Room for a Study Break (Demo)",
+      "description": "Try a weekly-planning worksheet and brainstorm small breaks. Listening is welcome, and no health information is requested. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T16:30:00-04:00",
+      "ends_at": "2026-10-28T17:30:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Wellbeing",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/peer-wellbeing-circle-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "heritage-story-circle-2026-10-28",
+      "club_id": "heritage-story-circle",
+      "club_name": "Heritage Story Circle (Demo)",
+      "title": "A Story You Choose to Share (Demo)",
+      "description": "Use optional writing prompts to explore identity and family stories. No recording, publication, or personal disclosure is expected. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T17:00:00-04:00",
+      "ends_at": "2026-10-28T18:00:00-04:00",
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "category": "Discussion",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/heritage-story-circle-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "first-gen-pathways-2026-10-28",
+      "club_id": "first-gen-pathways",
+      "club_name": "First Steps Peer Network (Demo)",
+      "title": "Office Hours Without the Guesswork (Demo)",
+      "description": "Practice asking a professor a clear question and planning a manageable week. The sample peer network does not determine financial aid or scholarships. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T18:00:00-04:00",
+      "ends_at": "2026-10-28T19:00:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Career",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/first-gen-pathways-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "startup-sandbox-2026-10-28",
+      "club_id": "startup-sandbox",
+      "club_name": "Startup Sandbox (Demo)",
+      "title": "Turn an Idea Into a Small Test (Demo)",
+      "description": "Practice a customer interview and sketch a first experiment for a campus idea. No existing business, prototype, or funding is required. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T18:30:00-04:00",
+      "ends_at": "2026-10-28T19:30:00-04:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/startup-sandbox-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "after-hours-ensemble-2026-10-28",
+      "club_id": "after-hours-ensemble",
+      "club_name": "After Hours Ensemble (Demo)",
+      "title": "Bring a Short Arrangement (Demo)",
+      "description": "Musicians with basic playing or singing experience share short arrangements and practice listening as an ensemble. Equipment loans are not listed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T19:00:00-04:00",
+      "ends_at": "2026-10-28T20:30:00-04:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Creative",
+      "cost": 0,
+      "beginner_friendly": false,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/after-hours-ensemble-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "community-data-lab-2026-10-28",
+      "club_id": "community-data-lab",
+      "club_name": "Community Data Studio (Demo)",
+      "title": "Tell a Story With a Tiny Dataset (Demo)",
+      "description": "Clean a synthetic table, choose a chart, and state what the chart cannot establish. Spreadsheet beginners are welcome. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-28T19:00:00-04:00",
+      "ends_at": "2026-10-28T20:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/community-data-lab-2026-10-28",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "scarlet-ai-collective-2026-10-29",
+      "club_id": "scarlet-ai-collective",
+      "club_name": "Scarlet AI Collective (Demo)",
+      "title": "When a Model Gets It Wrong (Demo)",
+      "description": "Review synthetic model predictions, choose a useful evaluation metric, and write a short error-analysis note. Build on a simple baseline. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-29T19:30:00-04:00",
+      "ends_at": "2026-10-29T20:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/scarlet-ai-collective-2026-10-29",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "bioexplorers-2026-10-30",
+      "club_id": "bioexplorers",
+      "club_name": "Bioexplorers Journal Circle (Demo)",
+      "title": "Microbes Without the Mystique (Demo)",
+      "description": "Discuss an accessible biology reading and diagram the evidence behind one claim. No live cultures or wet-lab experiments are used. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-30T16:00:00-04:00",
+      "ends_at": "2026-10-30T17:00:00-04:00",
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "category": "Discussion",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/bioexplorers-2026-10-30",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "repair-and-reuse-2026-10-31",
+      "club_id": "repair-and-reuse",
+      "club_name": "Repair and Reuse Studio (Demo)",
+      "title": "First Stitches, Less Waste (Demo)",
+      "description": "Practice a basic stitch on sample fabric scraps. The fictional $3 materials fee is not collected; electronics and batteries are not accepted. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-31T13:00:00-04:00",
+      "ends_at": "2026-10-31T14:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 3,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/repair-and-reuse-2026-10-31",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "cozy-digital-gaming-2026-10-31",
+      "club_id": "cozy-digital-gaming",
+      "club_name": "Cozy Digital Gaming Circle (Demo)",
+      "title": "Cooperative Games and Cozy Chat (Demo)",
+      "description": "Discuss relaxing games and accessibility settings with optional cooperative-play examples. No console or paid game purchase is required. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-10-31T15:00:00-04:00",
+      "ends_at": "2026-10-31T16:30:00-04:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/cozy-digital-gaming-2026-10-31",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "river-stewards-2026-11-01",
+      "club_id": "river-stewards",
+      "club_name": "River Stewards Workshop (Demo)",
+      "title": "Watershed Questions Indoors (Demo)",
+      "description": "Use an indoor watershed diagram and sample litter-audit sheet to plan responsible service questions. No field work or water testing is performed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-01T11:00:00-05:00",
+      "ends_at": "2026-11-01T12:00:00-05:00",
+      "campus": "Cook",
+      "location": "Cook Student Center · sample room",
+      "category": "Discussion",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/river-stewards-2026-11-01",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "mindful-minute-2026-11-02",
+      "club_id": "mindful-minute",
+      "club_name": "Mindful Minute Circle (Demo)",
+      "title": "An Hour of Gentle Reflection (Demo)",
+      "description": "Choose a quiet writing prompt, an optional short breathing exercise, or observation. This fictional peer session is not counseling or crisis support. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-02T17:00:00-05:00",
+      "ends_at": "2026-11-02T18:00:00-05:00",
+      "campus": "Douglass",
+      "location": "Douglass Student Center · sample room",
+      "category": "Wellbeing",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/mindful-minute-2026-11-02",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "visual-story-lab-2026-11-02",
+      "club_id": "visual-story-lab",
+      "club_name": "Visual Story Lab (Demo)",
+      "title": "Phone Photography Story Walk (Demo)",
+      "description": "Create a three-image story from an optional short walk or an indoor seated prompt. A phone camera is enough, and no images are uploaded by the app. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-02T17:30:00-05:00",
+      "ends_at": "2026-11-02T18:30:00-05:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Creative",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/visual-story-lab-2026-11-02",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "career-peer-circle-2026-11-03",
+      "club_id": "career-peer-circle",
+      "club_name": "Career Peer Circle (Demo)",
+      "title": "Practice a First Interview Answer (Demo)",
+      "description": "Use sample prompts to practice a clear introduction and peer feedback. No employer or recruiter is part of this fictional event. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-03T18:00:00-05:00",
+      "ends_at": "2026-11-03T19:00:00-05:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Career",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/career-peer-circle-2026-11-03",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "code-for-common-good-2026-11-03",
+      "club_id": "code-for-common-good",
+      "club_name": "Code for Common Good (Demo)",
+      "title": "Accessibility Check Together (Demo)",
+      "description": "Review a sample page for keyboard navigation, clear labels, and readable content. Pair a first-time coder with a small, concrete task. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-03T18:00:00-05:00",
+      "ends_at": "2026-11-03T19:30:00-05:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/code-for-common-good-2026-11-03",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "startup-sandbox-2026-11-04",
+      "club_id": "startup-sandbox",
+      "club_name": "Startup Sandbox (Demo)",
+      "title": "One-Minute Idea Pitches (Demo)",
+      "description": "Practice describing a problem, a proposed solution, and one test of the idea. The session does not award funding or introduce real investors. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-04T18:30:00-05:00",
+      "ends_at": "2026-11-04T19:30:00-05:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/startup-sandbox-2026-11-04",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "community-data-lab-2026-11-04",
+      "club_id": "community-data-lab",
+      "club_name": "Community Data Studio (Demo)",
+      "title": "Missing Values, Honest Charts (Demo)",
+      "description": "Compare two charts from a synthetic dataset and explain how missing values can affect a conclusion. No private student records are used. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-04T19:00:00-05:00",
+      "ends_at": "2026-11-04T20:30:00-05:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/community-data-lab-2026-11-04",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "global-table-2026-11-05",
+      "club_id": "global-table",
+      "club_name": "Global Table Exchange (Demo)",
+      "title": "Conversation Across Cultures (Demo)",
+      "description": "Use low-pressure small-group prompts to meet peers and listen to different everyday experiences. Sharing personal stories remains optional. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-05T18:00:00-05:00",
+      "ends_at": "2026-11-05T19:00:00-05:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/global-table-2026-11-05",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "skywatch-lab-2026-11-05",
+      "club_id": "skywatch-lab",
+      "club_name": "Skywatch Learning Circle (Demo)",
+      "title": "Plan a Skywatching Evening (Demo)",
+      "description": "Use indoor charts to identify observation questions and a weather backup. No real telescope access or outdoor trip is advertised. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-05T20:00:00-05:00",
+      "ends_at": "2026-11-05T21:00:00-05:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Workshop",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/skywatch-lab-2026-11-05",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "board-game-grove-2026-11-06",
+      "club_id": "board-game-grove",
+      "club_name": "Board Game Grove (Demo)",
+      "title": "Co-op Tabletop Mix and Meet (Demo)",
+      "description": "Try a cooperative-game format with rules taught at the table and optional observation. No prior strategy-game knowledge is needed. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-06T19:00:00-05:00",
+      "ends_at": "2026-11-06T21:00:00-05:00",
+      "campus": "Livingston",
+      "location": "Livingston Student Center · sample room",
+      "category": "Social",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/board-game-grove-2026-11-06",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "repair-and-reuse-2026-11-07",
+      "club_id": "repair-and-reuse",
+      "club_name": "Repair and Reuse Studio (Demo)",
+      "title": "Sketch a Reuse Project (Demo)",
+      "description": "Turn a sample nonpowered object into a reuse-design sketch. The workshop excludes batteries, electrical repairs, and hazardous materials. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-07T13:00:00-05:00",
+      "ends_at": "2026-11-07T14:30:00-05:00",
+      "campus": "Busch",
+      "location": "Busch Student Center · sample room",
+      "category": "Creative",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/repair-and-reuse-2026-11-07",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    },
+    {
+      "id": "neighborhood-service-circle-2026-11-08",
+      "club_id": "neighborhood-service-circle",
+      "club_name": "Neighborhood Service Circle (Demo)",
+      "title": "Ask Before You Organize (Demo)",
+      "description": "Role-play a respectful partner conversation and revise a fictional volunteer plan. The session does not certify official service hours. Fictitious demonstration event; no actual meeting, reservation, attendance, or payment is offered.",
+      "starts_at": "2026-11-08T10:00:00-05:00",
+      "ends_at": "2026-11-08T11:00:00-05:00",
+      "campus": "College Avenue",
+      "location": "College Avenue Student Center · sample room",
+      "category": "Service",
+      "cost": 0,
+      "beginner_friendly": true,
+      "registration_url": "",
+      "accessibility": "Sample plan: seated participation and a text activity outline are available. Room access, equipment, and accommodations are unverified because this is a fictional event; no real accommodation is promised.",
+      "source_url": "/events/neighborhood-service-circle-2026-11-08",
+      "updated_at": "2026-10-22T09:00:00-04:00",
+      "status": "scheduled",
+      "is_demo": true
+    }
+  ]
+}
