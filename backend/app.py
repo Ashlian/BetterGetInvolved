@@ -259,7 +259,7 @@ class Store:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
             # Idempotent seed import. Officer edits survive server restarts.
-            seed = json.loads(Path(seed_path).read_text())
+            seed = json.loads(Path(seed_path).read_text(encoding="utf-8"))
             for club in seed["clubs"]:
                 conn.execute("INSERT OR IGNORE INTO clubs VALUES (?,?)", (club["id"], json.dumps(club)))
             for event in seed["events"]:

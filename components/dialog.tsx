@@ -24,7 +24,8 @@ export default function Dialog({title, children, onClose, wide = false}: {title:
   }, []);
   return <div className="modal-backdrop" onMouseDown={e => {if (e.target === e.currentTarget) onClose();}}>
     <div className={`dialog ${wide ? 'dialog-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
-      <div className="dialog-heading"><h2>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={onClose}><X size={21}/></button></div>
+      <span className="sheet-grabber" aria-hidden="true"/>
+      <div className="dialog-heading"><h2>{title}</h2><button className="icon-button close-button" aria-label="Close" onClick={onClose}><X size={18} strokeWidth={2.4}/></button></div>
       {children}
     </div>
   </div>;
