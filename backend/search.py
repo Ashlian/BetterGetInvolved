@@ -147,7 +147,7 @@ def same_campus(actual, expected):
 def answer_faq(club, question):
     """Return one source passage verbatim, or abstain; never execute instructions."""
     method = "Grounded extractive FAQ retrieval; no generated claims"
-    abstain = {"answer": "I couldn't find a reliable answer in this club's published demo FAQs. Please contact the club directly.", "sources": [], "supported": False, "method": method}
+    abstain = {"answer": "I couldn't find a reliable answer in this club's published profile and FAQs. Please contact the club directly.", "sources": [], "supported": False, "method": method}
     if re.search(r"(ignore (all |previous |the )?instructions|system prompt|reveal.*(?:password|secret)|pretend|override|disregard|jailbreak)", question, re.I):
         return abstain
     faqs = club.get("faqs", [])

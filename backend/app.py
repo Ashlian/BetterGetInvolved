@@ -12,7 +12,6 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 import threading
 import time
 import uuid
@@ -29,6 +28,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from . import live_events
+from .db import SQLite, open_database
 from .search import HybridIndex, MODEL_NAME, answer_faq, parse_constraints, same_campus, tokens
 
 
@@ -221,7 +222,6 @@ class ClubPatch(Input):
 
 
 SCHEMA = """
-PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS clubs(id TEXT PRIMARY KEY, payload TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, club_id TEXT NOT NULL REFERENCES clubs(id), title_key TEXT NOT NULL, starts_at TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(club_id,title_key,starts_at));
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('student','officer','admin')), interests TEXT NOT NULL DEFAULT '[]', goals TEXT NOT NULL DEFAULT '', campus TEXT NOT NULL DEFAULT '', onboarded INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
@@ -232,38 +232,43 @@ CREATE TABLE IF NOT EXISTS bookmarks(user_id TEXT NOT NULL REFERENCES users(id) 
 CREATE TABLE IF NOT EXISTS dismissals(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
 CREATE TABLE IF NOT EXISTS saves(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL REFERENCES events(id), PRIMARY KEY(user_id,event_id));
 CREATE TABLE IF NOT EXISTS rsvps(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL REFERENCES events(id), status TEXT NOT NULL CHECK(status IN ('interested','going')), PRIMARY KEY(user_id,event_id));
+CREATE TABLE IF NOT EXISTS live_events(id TEXT PRIMARY KEY, starts_at TEXT NOT NULL, payload TEXT NOT NULL, synced_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS live_saves(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL REFERENCES live_events(id), PRIMARY KEY(user_id,event_id));
+CREATE TABLE IF NOT EXISTS sync_state(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS reports(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT NOT NULL, created_at TEXT NOT NULL);
 """
 
 
 class Store:
-    def __init__(self, path):
-        self.path = str(path)
+    def __init__(self, database):
+        # A plain path keeps the original SQLite behavior.
+        self.db = database if hasattr(database, "connect") else SQLite(database)
+        self.IntegrityError = self.db.IntegrityError
 
-    @contextmanager
     def connect(self):
-        conn = sqlite3.connect(self.path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys=ON")
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+        return self.db.connect()
 
     def initialize(self, seed_path, demo_mode):
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        self.db.create_schema(SCHEMA)
         with self.connect() as conn:
-            conn.executescript(SCHEMA)
             # Idempotent seed import. Officer edits survive server restarts.
-            seed = json.loads(Path(seed_path).read_text(encoding="utf-8"))
+            # The real catalog is not in Git (it contains students' contact emails). Without it,
+            # start with no imported clubs; a shared Supabase database already holds them.
+            seed = json.loads(Path(seed_path).read_text(encoding="utf-8")) if Path(seed_path).exists() else []
+            # A bare list is the real club catalog (data/rutgers_clubs.json): clubs only and no
+            # sample events. Real clubs are never handed to the demo officer; in demo mode it
+            # gets one clearly labeled demo club (data/demo_club.json) to manage instead.
+            fixture = isinstance(seed, dict)
+            officer_clubs = []
+            if not fixture:
+                seed = {"clubs": seed, "events": []}
+                if demo_mode:
+                    officer_clubs = [json.loads((ROOT / "data" / "demo_club.json").read_text(encoding="utf-8"))]
+                    seed["clubs"] = seed["clubs"] + officer_clubs
             for club in seed["clubs"]:
-                conn.execute("INSERT OR IGNORE INTO clubs VALUES (?,?)", (club["id"], json.dumps(club)))
+                conn.execute("INSERT INTO clubs VALUES (?,?) ON CONFLICT DO NOTHING", (club["id"], json.dumps(club)))
             for event in seed["events"]:
-                conn.execute("INSERT OR IGNORE INTO events VALUES (?,?,?,?,?)", (event["id"], event["club_id"], event["title"].strip().casefold(), datetime.fromisoformat(event["starts_at"]).astimezone(timezone.utc).isoformat(), json.dumps(event)))
+                conn.execute("INSERT INTO events VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING", (event["id"], event["club_id"], event["title"].strip().casefold(), datetime.fromisoformat(event["starts_at"]).astimezone(timezone.utc).isoformat(), json.dumps(event)))
             if demo_mode:
                 for email, (password, name, role) in DEMO_ACCOUNTS.items():
                     user_id = "demo-" + role
@@ -272,17 +277,52 @@ class Store:
                     # address when switching an existing database into demo mode.
                     if existing and existing["id"] != user_id:
                         continue
-                    conn.execute("INSERT OR IGNORE INTO users(id,email,password_hash,display_name,role,interests,goals,campus,onboarded,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", (user_id,email,password_hash(password),name,role,json.dumps(["Technology", "Community Service"]),"Meet people and learn something new", "Busch", 1,now_iso()))
-                    if role == "officer" and seed["clubs"]:
-                        assigned = [seed["clubs"][0]]
+                    conn.execute("INSERT INTO users(id,email,password_hash,display_name,role,interests,goals,campus,onboarded,created_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING", (user_id,email,password_hash(password),name,role,json.dumps(["Technology", "Community Service"]),"Meet people and learn something new", "Busch", 1,now_iso()))
+                    if role == "officer" and (officer_clubs or (fixture and seed["clubs"])):
+                        assigned = officer_clubs or [seed["clubs"][0]]
                         technology = next((c for c in seed["clubs"] if c["category"].lower() == "technology"), None)
-                        if technology:
+                        if fixture and technology:
                             assigned.append(technology)
                         for club in assigned:
-                            conn.execute("INSERT OR IGNORE INTO officers VALUES (?,?)", (user_id,club["id"]))
+                            conn.execute("INSERT INTO officers VALUES (?,?) ON CONFLICT DO NOTHING", (user_id,club["id"]))
             else:
                 # A previously used demo database must not preserve known logins.
                 conn.execute("DELETE FROM users WHERE id IN ('demo-student','demo-officer')")
+
+    def replace_live_events(self, events, synced_at):
+        """Upsert the feed. Rows are never deleted, so saved events keep their details."""
+        with self.connect() as conn:
+            for event in events:
+                conn.execute("INSERT INTO live_events VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET starts_at=excluded.starts_at,payload=excluded.payload,synced_at=excluded.synced_at", (event["id"], datetime.fromisoformat(event["starts_at"]).astimezone(timezone.utc).isoformat(), json.dumps(event), synced_at))
+            conn.execute("INSERT INTO sync_state VALUES ('live_events',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps({"synced_at": synced_at, "ids": [e["id"] for e in events], "error": ""}),))
+
+    def record_sync_error(self, message):
+        with self.connect() as conn:
+            row = conn.execute("SELECT value FROM sync_state WHERE key='live_events'").fetchone()
+            state = json.loads(row[0]) if row else {"synced_at": "", "ids": []}
+            state["error"] = message
+            conn.execute("INSERT INTO sync_state VALUES ('live_events',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(state),))
+
+    def live_state(self):
+        with self.connect() as conn:
+            row = conn.execute("SELECT value FROM sync_state WHERE key='live_events'").fetchone()
+        return json.loads(row[0]) if row else {"synced_at": "", "ids": [], "error": ""}
+
+    def live_records(self, ids=None):
+        """Events in the latest feed, or any stored rows by id (for saved items)."""
+        wanted = list(self.live_state()["ids"] if ids is None else ids)
+        if not wanted:
+            return []
+        with self.connect() as conn:
+            rows = conn.execute(f"SELECT payload FROM live_events WHERE id IN ({','.join('?'*len(wanted))}) ORDER BY starts_at", wanted).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def live_record(self, event_id):
+        with self.connect() as conn:
+            row = conn.execute("SELECT payload FROM live_events WHERE id=?", (event_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Event not found")
+        return json.loads(row[0])
 
     def records(self, table):
         assert table in ("clubs", "events")
@@ -302,10 +342,17 @@ def public_user(row):
     return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"])}
 
 
-def create_app(db_path=None, seed_path=None, demo_mode=None):
+LIVE_SYNC_SECONDS = 3 * 60 * 60
+
+
+def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, database_url=None, db_schema="public"):
     demo_mode = os.getenv("DEMO_MODE", "1") == "1" if demo_mode is None else demo_mode
-    store = Store(db_path or os.getenv("DATABASE_PATH", str(ROOT / "backend" / "local.db")))
-    seed_path = seed_path or ROOT / "data" / "seed.json"
+    live_sync = os.getenv("LIVE_EVENTS_SYNC", "1") == "1" if live_sync is None else live_sync
+    # An explicit file path (tests) always means SQLite; otherwise DATABASE_URL
+    # selects Supabase Postgres, falling back to the local SQLite file.
+    database_url = database_url if database_url is not None else (None if db_path else os.getenv("DATABASE_URL"))
+    store = Store(open_database(database_url, db_path or os.getenv("DATABASE_PATH", str(ROOT / "backend" / "local.db")), db_schema))
+    seed_path = seed_path or ROOT / "data" / "rutgers_clubs.json"
     allowed_origins = set(os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000").split(","))
     demo_hosts = set(os.getenv("DEMO_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver").split(","))
     reference = os.getenv("DEMO_REFERENCE_DATE", "2026-10-22") if demo_mode else None
@@ -313,14 +360,36 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
     windows = defaultdict(deque)
     rate_lock = threading.Lock()
 
+    stop_sync = threading.Event()
+
+    def sync_live_events():
+        try:
+            store.replace_live_events(live_events.select_events(live_events.fetch_upcoming()), now_iso())
+        except Exception as exc:  # Network or feed errors keep the last good copy.
+            store.record_sync_error(f"{type(exc).__name__}: {exc}"[:300])
+
+    def sync_loop():
+        while not stop_sync.is_set():
+            synced = store.live_state()["synced_at"]
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(synced)).total_seconds() if synced else None
+            if age is None or age >= LIVE_SYNC_SECONDS:
+                sync_live_events()
+                age = 0
+            stop_sync.wait(max(60, LIVE_SYNC_SECONDS - age))
+
     @asynccontextmanager
     async def lifespan(app):
         store.initialize(seed_path, demo_mode)
+        if live_sync:
+            threading.Thread(target=sync_loop, name="live-events-sync", daemon=True).start()
         yield
+        stop_sync.set()
+        store.db.close()
 
     app = FastAPI(title="BetterGetInvolved API", version="0.1.0", lifespan=lifespan)
     app.state.store, app.state.club_index = store, club_index
     app.state.demo_mode = demo_mode
+    app.state.sync_live_events = sync_live_events
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
@@ -408,7 +477,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "data_mode": "synthetic_demo" if demo_mode else "local", "embedding_model": MODEL_NAME}
+        return {"status": "ok", "data_mode": "synthetic_demo" if demo_mode else "local", "database": store.db.kind, "embedding_model": MODEL_NAME}
 
     @app.get("/api/clubs")
     def clubs(q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
@@ -448,9 +517,49 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
             records.sort(key=lambda event: datetime.fromisoformat(event["starts_at"]))
         return records
 
+    def is_live(event_id):
+        return event_id.startswith("live-")
+
+    def any_event(event_id):
+        return store.live_record(event_id) if is_live(event_id) else store.record("events", event_id)
+
+    @app.get("/api/live/status")
+    def live_status():
+        state = store.live_state()
+        return {"synced_at": state["synced_at"] or None, "count": len(state["ids"]), "error": state.get("error") or None, "source": "Rutgers getINVOLVED and Rutgers Recreation, via Scarlet Sync", "source_url": live_events.ATTRIBUTION_URL}
+
+    @app.get("/api/live/events")
+    def live_event_list(q: str = Query(default="", max_length=500), campus: str = "", category: str = "", from_date: date | None = None, to_date: date | None = None):
+        if from_date and to_date and from_date > to_date:
+            raise HTTPException(422, "From date must not be after to date")
+        eastern = ZoneInfo("America/New_York")
+        today = datetime.now(eastern).date()
+        constraints = parse_constraints(q, today)
+        start, end = from_date or constraints["start"] or today, to_date or constraints["end"]
+        wanted_campus = campus or constraints["campus"]
+        topic = tokens(constraints["query"])
+        def local_start(event):
+            return datetime.fromisoformat(event["starts_at"]).astimezone(eastern)
+        def matches(event):
+            when = local_start(event)
+            return ((not wanted_campus or (event["campus"] and same_campus(event["campus"], wanted_campus)))
+                and (not category or event["category"].casefold() == category.casefold())
+                and when.date() >= start and (not end or when.date() <= end)
+                and (not constraints["after_time"] or when.time() >= constraints["after_time"])
+                and (not constraints["before_time"] or when.time() <= constraints["before_time"])
+                and (not constraints["free"] or event["cost"] == 0))
+        records = [event for event in store.live_records() if matches(event)]
+        if topic:
+            # The feed has no descriptions, so search the fields it does carry.
+            def score(event):
+                return len(topic & tokens(" ".join((event["title"], event["club_name"], event["category"], event["location"], event["campus"])))) / len(topic)
+            records = [event for event in records if score(event) > 0]
+            records.sort(key=lambda event: (-score(event), event["starts_at"]))
+        return records
+
     @app.get("/api/events/{event_id}")
     def event_detail(event_id: str):
-        return store.record("events", event_id)
+        return any_event(event_id)
 
     @app.post("/api/clubs/{club_id}/faq")
     def faq(club_id: str, body: Question):
@@ -469,7 +578,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
             with store.connect() as conn:
                 conn.execute("INSERT INTO users(id,email,password_hash,display_name,role,created_at) VALUES (?,?,?,?,?,?)", (user_id,body.email,password_hash(body.password),body.display_name,"student",now_iso()))
                 row = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
-        except sqlite3.IntegrityError:
+        except store.IntegrityError:
             raise HTTPException(409, "An account with this email already exists")
         start_session(response,user_id)
         return public_user(row)
@@ -509,6 +618,9 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
         updates = body.model_dump(exclude_none=True)
         if "interests" in updates:
             updates["interests"] = json.dumps(updates["interests"])
+        if "onboarded" in updates:
+            # Stored as 0/1: Postgres, unlike SQLite, rejects a boolean in an integer column.
+            updates["onboarded"] = int(updates["onboarded"])
         if updates:
             with store.connect() as conn:
                 # Column names come exclusively from the validated model.
@@ -519,13 +631,14 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
     @app.get("/api/saved")
     def saved(user=Depends(current_user)):
         with store.connect() as conn:
-            return {"club_ids": [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=? ORDER BY club_id",(user["id"],))], "event_ids": [r[0] for r in conn.execute("SELECT event_id FROM saves WHERE user_id=? ORDER BY event_id",(user["id"],))], "dismissed_ids": [r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=? ORDER BY club_id",(user["id"],))], "maybe_later_ids": [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=? ORDER BY club_id",(user["id"],))], "rsvps": {r[0]:r[1] for r in conn.execute("SELECT event_id,status FROM rsvps WHERE user_id=?",(user["id"],))}}
+            live_ids = [r[0] for r in conn.execute("SELECT event_id FROM live_saves WHERE user_id=? ORDER BY event_id",(user["id"],))]
+            return {"club_ids": [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=? ORDER BY club_id",(user["id"],))], "event_ids": [r[0] for r in conn.execute("SELECT event_id FROM saves WHERE user_id=? ORDER BY event_id",(user["id"],))] + live_ids, "live_events": store.live_records(live_ids), "dismissed_ids": [r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=? ORDER BY club_id",(user["id"],))], "maybe_later_ids": [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=? ORDER BY club_id",(user["id"],))], "rsvps": {r[0]:r[1] for r in conn.execute("SELECT event_id,status FROM rsvps WHERE user_id=?",(user["id"],))}}
 
     def toggle(table, column, item_id, user_id):
-        assert (table,column) in (("follows","club_id"),("bookmarks","club_id"),("dismissals","club_id"),("saves","event_id"))
+        assert (table,column) in (("follows","club_id"),("bookmarks","club_id"),("dismissals","club_id"),("saves","event_id"),("live_saves","event_id"))
         with store.connect() as conn:
-            # BEGIN IMMEDIATE serializes a concurrent double-click toggle.
-            conn.execute("BEGIN IMMEDIATE")
+            # Serializes a concurrent double-click toggle of the same item.
+            conn.lock(f"{table}:{user_id}:{item_id}")
             exists = conn.execute(f"SELECT 1 FROM {table} WHERE user_id=? AND {column}=?",(user_id,item_id)).fetchone()
             if exists:
                 conn.execute(f"DELETE FROM {table} WHERE user_id=? AND {column}=?",(user_id,item_id))
@@ -550,11 +663,13 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
 
     @app.post("/api/events/{event_id}/save")
     def save(event_id: str, user=Depends(current_user)):
-        store.record("events",event_id)
-        return {"saved": toggle("saves","event_id",event_id,user["id"])}
+        any_event(event_id)
+        return {"saved": toggle("live_saves" if is_live(event_id) else "saves","event_id",event_id,user["id"])}
 
     @app.post("/api/events/{event_id}/rsvp")
     def rsvp(event_id: str, body: RSVP, user=Depends(current_user)):
+        if is_live(event_id):
+            raise HTTPException(409,"RSVP for this event on getINVOLVED")
         event = store.record("events",event_id)
         if event["status"] == "cancelled" and body.status != "none":
             raise HTTPException(409,"This event is cancelled")
@@ -597,7 +712,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
             elif has_profile:
                 reasons.append("An exploratory option to broaden your suggestions")
             else:
-                reasons.append("A starting point from the demo catalog")
+                reasons.append("A starting point from the club directory")
             if user and user["campus"] and same_campus(best["campus"],user["campus"]):
                 reasons.append("meets on your selected campus")
             if best["beginner_friendly"]:
@@ -605,11 +720,11 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
             selected.append({**best,"score":round(scores.get(best["id"],0),4),"explanation":"; ".join(reasons) + ". Category variety also influences the order."})
             categories[best["category"]] += 1
             candidates.remove(best)
-        return {"clubs":selected,"method":"Local TF-IDF + LSA similarity, explicit interests and goals, campus preference, and category diversity. Scores are similarities, not probabilities." if has_profile else "Cold start: varied beginner-friendly demo clubs. Add interests to personalize."}
+        return {"clubs":selected,"method":"Local TF-IDF + LSA similarity, explicit interests and goals, campus preference, and category diversity. Scores are similarities, not probabilities." if has_profile else "Cold start: a varied mix of clubs. Add interests to personalize."}
 
     @app.post("/api/reports")
     def reports(body: Report,user=Depends(current_user)):
-        store.record("events" if body.kind == "event" else "clubs",body.target_id)
+        any_event(body.target_id) if body.kind == "event" else store.record("clubs",body.target_id)
         with store.connect() as conn:
             conn.execute("INSERT INTO reports VALUES (?,?,?,?,?,?)",(str(uuid.uuid4()),user["id"],body.kind,body.target_id,body.reason,now_iso()))
         return {"ok":True}
@@ -630,7 +745,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
                     conn.execute("INSERT INTO events VALUES (?,?,?,?,?)",(event["id"],event["club_id"],event["title"].strip().casefold(),start,json.dumps(event)))
                 else:
                     conn.execute("UPDATE events SET club_id=?,title_key=?,starts_at=?,payload=? WHERE id=?",(event["club_id"],event["title"].strip().casefold(),start,json.dumps(event),event["id"]))
-        except sqlite3.IntegrityError:
+        except store.IntegrityError:
             raise HTTPException(409,"An event with the same club, title and start time already exists")
         return event
 
@@ -710,12 +825,12 @@ def create_app(db_path=None, seed_path=None, demo_mode=None):
 
     @app.get("/api/events/{event_id}/calendar")
     def calendar(event_id: str):
-        event = store.record("events",event_id)
+        event = any_event(event_id)
         def escape(value):
             return str(value).replace("\\","\\\\").replace("\r","").replace("\n","\\n").replace(";","\\;").replace(",","\\,")
         def stamp(value):
             return datetime.fromisoformat(value).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//BetterGetInvolved//Demo Events//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT",f"UID:{escape(event['id'])}@bettergetinvolved.local",f"DTSTAMP:{stamp(event['updated_at'])}",f"DTSTART:{stamp(event['starts_at'])}",f"DTEND:{stamp(event['ends_at'])}",f"SUMMARY:{escape(event['title'])}",f"DESCRIPTION:{escape(('DEMO EVENT — ' if event['is_demo'] else '') + event['description'])}",f"LOCATION:{escape(event['location'] + ', ' + event['campus'])}",f"STATUS:{'CANCELLED' if event['status']=='cancelled' else 'CONFIRMED'}","END:VEVENT","END:VCALENDAR"]
+        lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//BetterGetInvolved//Demo Events//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT",f"UID:{escape(event['id'])}@bettergetinvolved.local",f"DTSTAMP:{stamp(event['updated_at'])}",f"DTSTART:{stamp(event['starts_at'])}",*([f"DTEND:{stamp(event['ends_at'])}"] if event.get('ends_at') else []),f"SUMMARY:{escape(event['title'])}",f"DESCRIPTION:{escape(('DEMO EVENT — ' if event['is_demo'] else '') + (event['description'] or ('Hosted by ' + event['club_name'] + '. Details: ' + event['source_url'])))}",f"LOCATION:{escape(', '.join(part for part in (event['location'], event['campus']) if part))}",f"STATUS:{'CANCELLED' if event['status']=='cancelled' else 'CONFIRMED'}","END:VEVENT","END:VCALENDAR"]
         folded = []
         for line in lines:
             chunk = ""

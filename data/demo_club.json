@@ -1,0 +1,52 @@
+{
+ "id": "scarlet-ai-collective",
+ "name": "Scarlet AI Collective (Demo)",
+ "short_name": "SAC",
+ "category": "AI & Computing",
+ "description": "Explore machine learning through small, explainable projects, hands-on Python sessions, and discussion of how AI can help local communities. Members work in pairs, compare simple baselines, and examine model mistakes before presenting a result. This is a fictitious student organization for a product demonstration.",
+ "mission": "Make practical AI learning approachable while treating evidence, data consent, and community impact as part of technical work.",
+ "interests": [
+  "artificial intelligence",
+  "machine learning",
+  "Python",
+  "social impact",
+  "responsible AI"
+ ],
+ "campus": "Busch",
+ "location": "Busch Student Center · sample room",
+ "meeting_schedule": "Thursdays, 7:30–8:30 PM · sample schedule",
+ "beginner_friendly": true,
+ "membership_fee": "Free · sample dues only",
+ "eligibility": "Open to students from any major; no AI or programming background is required. These are synthetic membership examples, not university policies.",
+ "contact_email": "scarlet-ai-collective@example.org",
+ "website": "",
+ "instagram": "",
+ "discord": "",
+ "faqs": [
+  {
+   "question": "When and where do you meet?",
+   "answer": "Our sample meeting is Thursdays, 7:30–8:30 PM at Busch Student Center. The room and schedule are demonstration data; no real meeting is advertised."
+  },
+  {
+   "question": "How much does membership cost?",
+   "answer": "The sample membership fee is Free. These are fictional dues, and this app does not collect payments."
+  },
+  {
+   "question": "Who can join, and do beginners need experience?",
+   "answer": "Open to students from any major; no AI or programming background is required. Beginners are welcome, and sample activities include an introduction."
+  },
+  {
+   "question": "How do I join or contact the club?",
+   "answer": "You can follow this demo organization in BetterGetInvolved to try the workflow. No actual membership is created. The example.org contact address is a placeholder and should not be used to contact a real organization."
+  },
+  {
+   "question": "Will I need a paid AI account or a powerful laptop?",
+   "answer": "The demo curriculum uses small public or synthetic datasets and local Python tools. No paid AI account or powerful GPU is needed for the introductory activities."
+  }
+ ],
+ "source_url": "/clubs/scarlet-ai-collective",
+ "updated_at": "2026-10-22T09:00:00-04:00",
+ "verification": "demo",
+ "color": "#D72C46",
+ "featured": true
+}

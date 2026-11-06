@@ -18,7 +18,8 @@ export function categoryIcon(category: string): LucideIcon {
 export const campusSlug = (campus: string) => campus.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
 
 export function CampusMark({campus, short = false}: {campus: string; short?: boolean}) {
-  return <span className={`campus campus-${campusSlug(campus)}`}><i aria-hidden="true"/>{short ? campus.replace('College Avenue', 'College Ave') : campus}</span>;
+  if (!campus) return null;
+  return<span className={`campus campus-${campusSlug(campus)}`}><i aria-hidden="true"/>{short ? campus.replace('College Avenue', 'College Ave') : campus}</span>;
 }
 
 // A club's tile: its own color with the category symbol, like an app icon.

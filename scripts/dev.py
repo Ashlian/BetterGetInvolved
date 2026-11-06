@@ -10,6 +10,18 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def read_env_file(path):
+    """KEY=value lines from an ignored .env file; real environment variables win."""
+    values = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
 def main():
     node = os.environ.get("NODE_BINARY") or shutil.which("node")
     local_node = ROOT / ".tools/node/bin/node"
@@ -18,7 +30,7 @@ def main():
     python = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if not node or not python.exists() or not (ROOT / "node_modules/next").exists():
         sys.exit("Install dependencies first; see README.md Quick start.")
-    env = os.environ.copy()
+    env = {**read_env_file(ROOT / ".env"), **os.environ}
     env["PATH"] = str(Path(node).parent) + os.pathsep + env.get("PATH", "")
     env.setdefault("DEMO_MODE", "1")
     children = []
@@ -37,6 +49,9 @@ def main():
         while all(child.poll() is None for child in children):
             time.sleep(0.5)
     finally:
+        for name, child in zip(("API server", "Web server"), children):
+            if child.poll() is not None:
+                print(f"\n{name} stopped (exit code {child.returncode}); stopping the other one.", flush=True)
         stop()
         for child in children:
             try:

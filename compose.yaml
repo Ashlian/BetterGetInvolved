@@ -5,6 +5,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_PATH: /data/bgi.sqlite3
+      DATABASE_URL: ${DATABASE_URL:-}
       DEMO_MODE: "1"
       DEMO_ALLOWED_HOSTS: localhost,127.0.0.1,::1,testserver,api
       ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
