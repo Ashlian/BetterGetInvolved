@@ -52,7 +52,7 @@ def test_authentication_cookie_login_logout_and_expiry(api):
     user = login(client)
     assert user["role"] == "student"
     token = client.cookies.get(COOKIE)
-    with sqlite3.connect(db) as conn:
+    with client.app.state.store.connect() as conn:
         hashed,expires = conn.execute("SELECT token_hash,expires_at FROM sessions").fetchone()
         assert hashed == hashlib.sha256(token.encode()).hexdigest()
         assert hashed != token
@@ -60,7 +60,7 @@ def test_authentication_cookie_login_logout_and_expiry(api):
     assert client.post("/api/auth/logout").json() == {"ok":True}
     assert client.get("/api/auth/me").status_code == 401
     login(client)
-    with sqlite3.connect(db) as conn:
+    with client.app.state.store.connect() as conn:
         conn.execute("UPDATE sessions SET expires_at=0")
     assert client.get("/api/auth/me").status_code == 401
 
@@ -96,7 +96,7 @@ def test_ownership_of_profile_saves_bookmarks_rsvp_and_account_delete(api):
     assert client.post("/api/events/weekend/save").json()["saved"]
     assert client.post("/api/events/weekend/rsvp",json={"status":"going"}).status_code == 200
     saved = client.get("/api/saved").json()
-    assert saved == {"club_ids":["ai"],"event_ids":["weekend"],"dismissed_ids":["robotics"],"maybe_later_ids":["ai"],"rsvps":{"weekend":"going"}}
+    assert saved == {"club_ids":["ai"],"event_ids":["weekend"],"live_events":[],"dismissed_ids":["robotics"],"maybe_later_ids":["ai"],"rsvps":{"weekend":"going"}}
     assert client.post("/api/reports",json={"kind":"answer","target_id":"ai","reason":"Please review the source."}).status_code == 200
     client.post("/api/auth/logout")
     second = register(client,"second@example.edu")
@@ -106,12 +106,12 @@ def test_ownership_of_profile_saves_bookmarks_rsvp_and_account_delete(api):
     assert client.put("/api/profile",json={"id":first["id"],"goals":"Overwrite"}).status_code == 422
     assert client.delete("/api/auth/me").json() == {"ok":True}
     assert client.get("/api/auth/me").status_code == 401
-    with sqlite3.connect(db) as conn:
+    with client.app.state.store.connect() as conn:
         assert conn.execute("SELECT COUNT(*) FROM users WHERE id=?",(second["id"],)).fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM follows WHERE user_id=?",(first["id"],)).fetchone()[0] == 1
     assert client.post("/api/auth/login",json={"email":"new@example.edu","password":"Long secret 2026!"}).status_code == 200
     assert client.delete("/api/auth/me").status_code == 200
-    with sqlite3.connect(db) as conn:
+    with client.app.state.store.connect() as conn:
         for table in ("sessions","follows","bookmarks","dismissals","saves","rsvps","reports"):
             assert conn.execute(f"SELECT COUNT(*) FROM {table} WHERE user_id=?",(first["id"],)).fetchone()[0] == 0
 
@@ -270,3 +270,49 @@ def test_existing_student_fixture_email_collision_does_not_promote_or_crash(api,
     with sqlite3.connect(db) as conn:
         assert conn.execute("SELECT role FROM users WHERE email='officer@demo.local'").fetchone()[0] == "student"
         assert conn.execute("SELECT COUNT(*) FROM officers WHERE user_id='ordinary-student'").fetchone()[0] == 0
+
+
+def raw_live(event_id, title, start, category="Club", location="Livingston Student Center", host="Demo Host", free=True, end=None):
+    return {"id":event_id,"title":title,"host":host,"startTime":start,"endTime":end,"location":location,"category":category,"isFree":free,"description":None,"imageUrl":None,"source":"getinvolved","url":f"https://rutgers.campuslabs.com/engage/event/{event_id}","scrapedAt":"2026-11-01T00:00:00-04:00"}
+
+
+def test_live_feed_normalizes_filters_and_repairs_text():
+    from backend import live_events
+    pages = [{"events":[raw_live("1","Let\u00e2\u20ac\u2122s Talk With Art","2030-01-10T14:00:00-05:00",location="The Hatchery in Alexander Library"),raw_live("2","Library hours","2030-01-10T08:00:00-05:00",category="Study Space",location="Carr Library"),raw_live("3","Away game","2030-01-11T19:00:00-05:00",category="Basketball",location="Mackey Arena, West Lafayette, IN")],"total":5},{"events":[raw_live("4","Home game","2030-01-12T19:00:00-05:00",category="Basketball",location="Jersey Mike\u2019s Arena, Piscataway, NJ"),raw_live("5","Newark meetup","2030-01-12T19:00:00-05:00",location="Dana Library (Newark)")],"total":5}]
+    calls = []
+    def fetch(name, arguments):
+        calls.append(arguments["offset"])
+        return pages[len(calls)-1]
+    events = live_events.select_events(live_events.fetch_upcoming(fetch))
+    assert calls == [0, 3]
+    assert [e["title"] for e in events] == ["Let\u2019s Talk With Art", "Home game"]
+    assert [e["campus"] for e in events] == ["College Avenue", "Livingston"]
+    assert events[0]["id"] == "live-1" and events[0]["live"] and not events[0]["is_demo"] and events[0]["cost"] == 0
+    assert events[0]["ends_at"] is None
+
+
+def test_live_events_search_save_calendar_and_rsvp(api, monkeypatch):
+    client, _ = api
+    from backend import live_events
+    monkeypatch.setattr(live_events, "fetch_upcoming", lambda: [live_events.normalize(raw_live("a","Friday Night Fellowship","2030-01-10T18:00:00-05:00",host="Reformed University Fellowship")), live_events.normalize(raw_live("b","Intro to Strength Training","2030-01-11T10:00:00-05:00",category="Recreation",location="Werblin Rec Center",free=False))])
+    client.app.state.sync_live_events()
+    status = client.get("/api/live/status").json()
+    assert status["count"] == 2 and status["synced_at"] and status["error"] is None
+    assert [e["id"] for e in client.get("/api/live/events").json()] == ["live-a", "live-b"]
+    assert [e["id"] for e in client.get("/api/live/events", params={"q":"fellowship"}).json()] == ["live-a"]
+    assert [e["id"] for e in client.get("/api/live/events", params={"campus":"Busch"}).json()] == ["live-b"]
+    assert [e["id"] for e in client.get("/api/live/events", params={"q":"free"}).json()] == ["live-a"]
+    assert client.post("/api/events/live-a/save").status_code == 401
+    login(client)
+    assert client.post("/api/events/live-a/save").json() == {"saved": True}
+    saved = client.get("/api/saved").json()
+    assert "live-a" in saved["event_ids"] and saved["live_events"][0]["title"] == "Friday Night Fellowship"
+    assert client.post("/api/events/live-a/rsvp", json={"status":"going"}).status_code == 409
+    ics = client.get("/api/events/live-a/calendar").text
+    assert "SUMMARY:Friday Night Fellowship" in ics and "DTEND" not in ics
+    assert client.get("/api/events/live-missing").status_code == 404
+    # A failed refresh keeps the last good copy and reports the error.
+    monkeypatch.setattr(live_events, "fetch_upcoming", lambda: (_ for _ in ()).throw(OSError("offline")))
+    client.app.state.sync_live_events()
+    assert client.get("/api/live/status").json()["error"].startswith("OSError")
+    assert len(client.get("/api/live/events").json()) == 2

@@ -8,15 +8,18 @@ export function EventRow({event, saved, onOpen, onSave}: {event: CampusEvent; sa
     <button className="event-main plain-button" onClick={onOpen}>
       <span className="event-date"><small>{dateFormat(event.starts_at, {month: 'short'})}</small><strong>{dateFormat(event.starts_at, {day: 'numeric'})}</strong></span>
       <span className="event-info"><span className="event-club">{cleanName(event.club_name)}</span><strong className="event-title">{event.title}</strong>
-        <span className="event-meta"><span className="tabular">{eventTime(event.starts_at)}</span><CampusMark campus={event.campus}/>{event.cost === 0 && <span>Free</span>}{event.status === 'cancelled' && <span className="cancelled-tag">Cancelled</span>}</span></span>
+        <span className="event-meta"><span className="tabular">{eventTime(event.starts_at)}</span>{event.campus ? <CampusMark campus={event.campus}/> : <span className="event-place">{event.location}</span>}{event.cost === 0 && <span>Free</span>}{event.is_demo && <span className="demo-tag">Demo</span>}{event.status === 'cancelled' && <span className="cancelled-tag">Cancelled</span>}</span></span>
       <ChevronRight className="event-chevron" size={18} aria-hidden="true"/>
     </button>
     <button className={`icon-button ${saved ? 'is-saved' : ''}`} aria-label={`${saved ? 'Unsave' : 'Save'} ${event.title}`} aria-pressed={saved} onClick={onSave}><Bookmark size={19} fill={saved ? 'currentColor' : 'none'}/></button>
   </article>;
 }
 
-export default function EventCalendar({events, savedIds, onOpen, onSave}: {events: CampusEvent[]; savedIds: string[]; onOpen: (event: CampusEvent) => void; onSave: (event: CampusEvent) => void}) {
-  const [month, setMonth] = useState(new Date(2026, 9, 1, 12));
+type Day = {year: number; month: number; day: number};
+export const easternDay = (iso: string | Date): Day => {const [month, day, year] = dateFormat(iso, {year: 'numeric', month: '2-digit', day: '2-digit'}).split('/').map(Number); return {year, month, day};};
+
+export default function EventCalendar({events, savedIds, onOpen, onSave, today, footnote}: {events: CampusEvent[]; savedIds: string[]; onOpen: (event: CampusEvent) => void; onSave: (event: CampusEvent) => void; today: Day; footnote: string}) {
+  const [month, setMonth] = useState(new Date(today.year, today.month - 1, 1, 12));
   const [display, setDisplay] = useState<'month' | 'list'>('month');
   const [selected, setSelected] = useState<number | null>(null);
   const inMonth = events.filter(e => {
@@ -33,12 +36,12 @@ export default function EventCalendar({events, savedIds, onOpen, onSave}: {event
       {Array.from({length: offset}, (_, i) => <div className="calendar-cell outside" key={`empty-${i}`}/>)}
       {Array.from({length: days}, (_, i) => {
         const day = i + 1; const daily = inMonth.filter(e => Number(dateFormat(e.starts_at, {day: 'numeric'})) === day);
-        const reference = month.getFullYear() === 2026 && month.getMonth() === 9 && day === 22;
-        return <button key={day} className={`calendar-cell ${selected === day ? 'day-selected' : ''} ${reference ? 'reference-day' : ''}`} onClick={() => setSelected(selected === day ? null : day)} aria-pressed={selected === day} aria-label={`${month.toLocaleDateString('en-US', {month: 'long'})} ${day}${reference ? ', today' : ''}, ${daily.length} ${daily.length === 1 ? 'event' : 'events'}`}><span className="day-number">{day}</span><span className="calendar-event-labels">{daily.slice(0, 2).map(e => <span className={`campus-${campusSlug(e.campus)} ${e.status === 'cancelled' ? 'cancelled' : ''}`} key={e.id}>{e.title}</span>)}{daily.length > 2 && <small>+{daily.length - 2} more</small>}</span>{daily.length > 0 && <span className="calendar-dots" aria-hidden="true">{daily.slice(0, 3).map(e => <i className={`campus-${campusSlug(e.campus)}`} key={e.id}/>)}</span>}</button>;
+        const reference = month.getFullYear() === today.year && month.getMonth() + 1 === today.month && day === today.day;
+        return <button key={day} className={`calendar-cell ${selected === day ? 'day-selected' : ''} ${reference ? 'reference-day' : ''}`} onClick={() => setSelected(selected === day ? null : day)} aria-pressed={selected === day} aria-label={`${month.toLocaleDateString('en-US', {month: 'long'})} ${day}${reference ? ', today' : ''}, ${daily.length} ${daily.length === 1 ? 'event' : 'events'}`}><span className="day-number">{day}</span><span className="calendar-event-labels">{daily.slice(0, 2).map(e => <span className={`${e.campus ? `campus-${campusSlug(e.campus)}` : ''} ${e.status === 'cancelled' ? 'cancelled' : ''}`} key={e.id}>{e.title}</span>)}{daily.length > 2 && <small>+{daily.length - 2} more</small>}</span>{daily.length > 0 && <span className="calendar-dots" aria-hidden="true">{daily.slice(0, 3).map(e => <i className={`${e.campus ? `campus-${campusSlug(e.campus)}` : ''}`} key={e.id}/>)}</span>}</button>;
       })}
     </div></div>}
     <div className="section-heading"><h2>{selected ? `${month.toLocaleDateString('en-US', {month: 'long'})} ${selected}` : 'All events this month'}<span className="count">{visible.length}</span></h2>{selected && <button className="text-button" onClick={() => setSelected(null)}>Show all dates</button>}</div>
     <div className="event-list surface">{visible.length ? visible.map(event => <EventRow key={event.id} event={event} saved={savedIds.includes(event.id)} onOpen={() => onOpen(event)} onSave={() => onSave(event)}/>) : <div className="empty-state"><CalendarDays size={30}/><h3>No events on this date</h3><p>Pick another day, or switch months.</p></div>}</div>
-    <p className="fine-print">Times are Eastern Time. “Today” is the demo reference date, October 22, 2026.</p>
+    <p className="fine-print">{footnote}</p>
   </>;
 }

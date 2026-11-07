@@ -2,7 +2,7 @@
 
 A Rutgers–New Brunswick student-engagement prototype built from the Group 6 AI4GOOD project brief. Explore organizations, get explainable recommendations, search in natural language, ask source-backed club questions, save events, and manage assigned organizations as an officer.
 
-**Current data is fictional and explicitly labeled demo data. This independent student project is not affiliated with Rutgers.** The app does not provide live university listings, verified Rutgers accounts, or real event registration.
+**Events and clubs are real Rutgers–New Brunswick data. This independent student project is not affiliated with Rutgers.** The Events and Today screens show live listings from Rutgers getINVOLVED and Rutgers Recreation, collected by [Scarlet Sync](https://scarletsync.app/support/developer-connectors) and refreshed every three hours (`backend/live_events.py`). The club directory comes from public organization profiles on The Arc, built by `scripts/build_rutgers_clubs.py` and loaded with `scripts/import_rutgers_clubs.py`. That catalog file (`data/rutgers_clubs.json`) is **not in Git** because it contains students' contact emails: use the shared Supabase database, or get the file privately from the team. Without it, the app starts with one labeled demo club (`data/demo_club.json`) for the demo officer account. The app does not provide verified Rutgers accounts or real event registration; live events link to getINVOLVED for RSVPs. Set `LIVE_EVENTS_SYNC=0` to run fully offline.
 
 ## Quick start
 
@@ -15,6 +15,8 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 python3 scripts/dev.py
 ```
+
+# RUN .venv\Scripts\python scripts\dev.py
 
 Open **http://127.0.0.1:3000**. Interactive API documentation is at **http://127.0.0.1:8000/docs**. On Windows, create the environment with `py -m venv .venv` and use `.venv\Scripts\python` for Python commands. The development launcher starts both servers and stops them with Ctrl+C. This workspace also has an ignored standard Node runtime in `.tools/node`; the launcher detects it when Node is not on PATH. Set `NODE_BINARY` to select another executable.
 
@@ -41,11 +43,20 @@ The default reference date is **October 22, 2026**. Events are samples; relative
 
 ## Architecture and scope
 
-The frontend uses Next.js App Router, React and TypeScript; FastAPI owns the API, local SQLite persistence and retrieval. Next.js proxies `/api` to the backend so cookies remain same-origin. Run both servers; the UI does not silently substitute fake data when the API fails.
+The frontend uses Next.js App Router, React and TypeScript; FastAPI owns the API, persistence, and retrieval. Data lives in Supabase Postgres when `DATABASE_URL` is set, and otherwise in a local SQLite file. Next.js proxies `/api` to the backend so cookies remain same-origin. Run both servers; the UI does not silently substitute fake data when the API fails.
 
-This local implementation uses **SQLite rather than Supabase/PostgreSQL/pgvector**, **LSA rather than a pretrained embedding service**, and **extractive FAQ retrieval rather than generative RAG**. Those choices make the first build runnable without credentials and keep its behavior inspectable. They have explicit quality and deployment limits. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API_CONTRACT.md), and [data disclosure](data/README.md).
+Supabase is used as a Postgres database only: the FastAPI backend keeps its own accounts and authorization, and every table has row-level security enabled with no policies, so Supabase's public Data API cannot read them. The app uses **LSA rather than a pretrained embedding service**, and **extractive FAQ retrieval rather than generative RAG**. Those choices make the first build runnable without credentials and keep its behavior inspectable. They have explicit quality and deployment limits. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API_CONTRACT.md), and [data disclosure](data/README.md).
 
-Real officer verification, email verification/recovery, authorized live data, Supabase RLS, production infrastructure, human research, and measured student impact remain to be completed. Secondary social matching, mobile apps, notification delivery, and flyer extraction are outside this build. This is a working local prototype, not a completed campus launch.
+Real officer verification, email verification/recovery, Supabase Auth, production infrastructure, human research, and measured student impact remain to be completed. Secondary social matching, mobile apps, notification delivery, and flyer extraction are outside this build. This is a working local prototype, not a completed campus launch.
+
+## Using Supabase
+
+1. In the Supabase dashboard, open your project and choose **Connect**. Copy the **Session pooler** connection string (it works on networks without IPv6) and replace `[YOUR-PASSWORD]` with the database password. URL-encode special characters in the password, for example `@` as `%40`.
+2. Copy `.env.example` to `.env` and set `DATABASE_URL` to that string. `.env` is ignored by Git; never commit it.
+3. Optional: copy existing local accounts and saves with `.venv\Scripts\python scripts\migrate_to_supabase.py` (Windows) or `.venv/bin/python scripts/migrate_to_supabase.py`. It is safe to run twice.
+4. Start the app with `python scripts/dev.py`. The backend creates its tables on first start; `/api/health` reports `"database": "postgres"`.
+
+To run the API tests against Postgres as well, set `TEST_DATABASE_URL`. Each test uses a temporary schema that is dropped afterwards.
 
 ## Checks and evaluation
 
@@ -69,7 +80,7 @@ pnpm build
 
 In another terminal, run `pnpm start`. For a containerized local installation, use `docker compose up --build`; the API database persists in a named volume and the web port binds to the local machine. Docker execution has separate environment requirements; see the verification record for what was actually tested.
 
-Environment variables are documented in [.env.example](.env.example). Export them in the terminal or set them through your hosting environment; the Python API does not automatically load `.env` files. `API_URL` is the backend origin for the web proxy. `DATABASE_PATH` selects the persistent SQLite file. `ALLOWED_ORIGINS` must list exact browser origins for writes. Enable `COOKIE_SECURE=1` only behind HTTPS. Avoid putting secrets in browser-exposed variables or Git.
+Environment variables are documented in [.env.example](.env.example). Export them in the terminal or set them through your hosting environment; `scripts/dev.py` loads `.env` for local development; elsewhere, set variables through the hosting environment. `API_URL` is the backend origin for the web proxy. `DATABASE_URL` selects Supabase Postgres; without it, `DATABASE_PATH` selects the persistent SQLite file. `ALLOWED_ORIGINS` must list exact browser origins for writes. Enable `COOKIE_SECURE=1` only behind HTTPS. Avoid putting secrets in browser-exposed variables or Git.
 
 ## Project evidence
 

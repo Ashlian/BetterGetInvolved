@@ -18,3 +18,6 @@ backend/.cache/
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# Real club catalog built from The Arc; contains students' contact emails. Share privately, never commit.
+data/rutgers_clubs.json
