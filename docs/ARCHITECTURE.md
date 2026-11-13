@@ -12,7 +12,7 @@ flowchart LR
 
 Next.js, React and TypeScript implement one connected browser application. Requests go through a same-origin route-handler proxy that reads `API_URL` at request time, preserves session cookies, and reports backend failures. FastAPI owns authentication, validation, per-organization authorization, persistence, retrieval and calendar exports. SQLite makes the first build reproducible without a cloud account. Authentication uses salted scrypt password hashes and database-backed opaque sessions, transmitted in an HTTP-only cookie. Sessions can be invalidated at logout and account deletion.
 
-The requested Supabase/PostgreSQL/pgvector stack is a production migration target, not an active integration. Local SQLite does **not** provide PostgreSQL row-level security. Backend ownership checks protect each local endpoint; future direct database/API access must use tested RLS before exposure. No Supabase, NetID, Rutgers API, paid model, email delivery, native mobile, or background notification integration is claimed.
+Storage uses Supabase Postgres when `DATABASE_URL` is configured and local SQLite otherwise. The FastAPI backend keeps its own account/session system. Postgres tables have RLS enabled with public Data API access revoked; all access goes through the backend's authorization checks. Supabase Auth, pgvector, and NetID are not used by this implementation.
 
 ## Retrieval and recommendations
 
@@ -24,7 +24,7 @@ The FAQ assistant retrieves and quotes approved structured answers. It is extrac
 
 ## Persistence and production path
 
-The local database stores clubs/events and private users, sessions, preferences, saved items, follows, RSVP intentions, officer assignments and reports. SQLite is a single-instance development deployment; use a persistent local disk or the Compose named volume. Runtime databases are ignored by Git.
+The database stores clubs/events and private users, sessions, preferences, saved items, follows, RSVP intentions, officer assignments and reports. Club discussions use normalized `forum_posts` and `forum_comments` tables with foreign keys to clubs, authors, and parent posts. Forum reads are public, while writes and deletions use session-derived authorization. Public serializers expose current display names without account emails. SQLite is a single-instance development deployment; use a persistent local disk or the Compose named volume. Runtime databases are ignored by Git.
 
 Before a campus pilot, provision authenticated production infrastructure, migrate to Supabase Auth/PostgreSQL, enforce RLS at every exposed table, verify officers out of band, import authorized real records, implement verified email and recovery flows, test backups and restore, configure HTTPS/secure cookies, shared rate limiting and monitoring, and validate the revised system with users. Deployment instructions make the current app runnable; they do not certify a production launch.
 

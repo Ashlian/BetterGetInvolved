@@ -8,7 +8,7 @@ import {CampusMark, ClubArt} from './visuals';
 
 const sourceHref = (url: string) => url.startsWith('/api/') ? url : url.startsWith('/') ? `/api${url}` : url;
 
-export function ReportForm({kind, id}: {kind: 'club' | 'event' | 'answer'; id: string}) {
+export function ReportForm({kind, id}: {kind: 'club' | 'event' | 'answer' | 'forum_post' | 'forum_comment'; id: string}) {
   const [open, setOpen] = useState(false); const [reason, setReason] = useState(''); const [status, setStatus] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {e.preventDefault(); setLoading(true); setError(''); try {await post('/reports', {kind, target_id: id, reason}); setStatus('Report received. Thank you for helping improve the information.'); setOpen(false);} catch (e) {setError((e as Error).message);} finally {setLoading(false);}}
   return <div className="report-area">{!open && !status && <button className="text-button muted" onClick={() => setOpen(true)}><Flag size={13}/>Report an issue</button>}{status && <p className="success-message" role="status">{status}</p>}{open && <form className="form-stack" onSubmit={submit}><label>What needs a closer look?<textarea value={reason} onChange={e => setReason(e.target.value)} required minLength={5} maxLength={1500} rows={3} placeholder="Describe inaccurate information, accessibility concerns, or another issue."/></label><ErrorMessage message={error}/><div className="form-actions"><SubmitButton loading={loading} className="button button-outline">Send report</SubmitButton><button type="button" className="text-button" onClick={() => setOpen(false)}>Cancel</button></div></form>}</div>;

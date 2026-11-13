@@ -124,9 +124,35 @@ class RSVP(Input):
 
 
 class Report(Input):
-    kind: Literal["club", "event", "answer"]
+    kind: Literal["club", "event", "answer", "forum_post", "forum_comment"]
     target_id: str = Field(min_length=1, max_length=100)
     reason: str = Field(min_length=5, max_length=2000)
+
+
+class ForumPostCreate(Input):
+    club_id: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=3, max_length=160)
+    body: str = Field(min_length=1, max_length=10000)
+
+    @field_validator("club_id", "title", "body")
+    @classmethod
+    def plain_text(cls, value):
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", value):
+            raise ValueError("Text cannot contain control characters")
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            raise ValueError("Text must contain valid Unicode")
+        return value
+
+
+class ForumCommentCreate(Input):
+    body: str = Field(min_length=1, max_length=3000)
+
+    @field_validator("body")
+    @classmethod
+    def plain_text(cls, value):
+        return ForumPostCreate.plain_text(value)
 
 
 def safe_url(value, allow_blank=True):
@@ -236,7 +262,31 @@ CREATE TABLE IF NOT EXISTS live_events(id TEXT PRIMARY KEY, starts_at TEXT NOT N
 CREATE TABLE IF NOT EXISTS live_saves(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, event_id TEXT NOT NULL REFERENCES live_events(id), PRIMARY KEY(user_id,event_id));
 CREATE TABLE IF NOT EXISTS sync_state(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS reports(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS forum_posts(id TEXT PRIMARY KEY, club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE, author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS forum_comments(id TEXT PRIMARY KEY, post_id TEXT NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE, author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, body TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS forum_posts_newest_idx ON forum_posts(created_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS forum_posts_club_idx ON forum_posts(club_id,created_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS forum_posts_author_idx ON forum_posts(author_id);
+CREATE INDEX IF NOT EXISTS forum_comments_thread_idx ON forum_comments(post_id,created_at,id);
+CREATE INDEX IF NOT EXISTS forum_comments_author_idx ON forum_comments(author_id);
 """
+
+
+# Standard SQL shared by SQLite and Postgres. Last activity is derived from
+# remaining comments, so cascading account deletion cannot leave stale counts.
+FORUM_POST_SELECT = """
+SELECT p.id,p.club_id,p.title,p.body,p.author_id,p.created_at,
+       u.display_name AS author_name,c.payload AS club_payload,
+       COALESCE(a.comment_count,0) AS comment_count,
+       CASE WHEN a.last_comment_at>p.updated_at THEN a.last_comment_at
+            ELSE p.updated_at END AS last_activity_at
+FROM forum_posts p
+JOIN users u ON u.id=p.author_id
+JOIN clubs c ON c.id=p.club_id
+LEFT JOIN (SELECT post_id,COUNT(*) AS comment_count,MAX(created_at) AS last_comment_at
+           FROM forum_comments GROUP BY post_id) a ON a.post_id=p.id
+"""
+FORUM_COMMENT_LIMIT = 1000
 
 
 class Store:
@@ -410,8 +460,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             except ValueError:
                 return JSONResponse(status_code=400, content={"detail": "Invalid content length"})
         client_ip = request.client.host if request.client else "unknown"
-        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register") else "faq" if path.endswith("/faq") else "general"
-        limit = {"auth": 15, "faq": 25, "general": 300}[bucket]
+        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register") else "faq" if path.endswith("/faq") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
+        limit = {"auth": 15, "faq": 25, "forum_write": 30, "general": 300}[bucket]
         timestamp = time.monotonic()
         with rate_lock:
             key = (client_ip, bucket)
@@ -429,7 +479,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
-        if path.startswith(("/api/auth", "/api/profile", "/api/saved", "/api/recommendations", "/api/officer")):
+        if path.startswith(("/api/auth", "/api/profile", "/api/saved", "/api/recommendations", "/api/officer", "/api/forums")):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -478,6 +528,124 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
     @app.get("/api/health")
     def health():
         return {"status": "ok", "data_mode": "synthetic_demo" if demo_mode else "local", "database": store.db.kind, "embedding_model": MODEL_NAME}
+
+    def can_delete_forum(author_id, user):
+        return bool(user and (user["id"] == author_id or user["role"] == "admin"))
+
+    def public_forum_post(row, user):
+        return {"id":row["id"],"club_id":row["club_id"],"club_name":json.loads(row["club_payload"])["name"],"title":row["title"],"body":row["body"],"author_name":row["author_name"],"created_at":row["created_at"],"updated_at":row["last_activity_at"],"comment_count":row["comment_count"],"can_delete":can_delete_forum(row["author_id"],user)}
+
+    def public_forum_comment(row, user):
+        return {"id":row["id"],"post_id":row["post_id"],"body":row["body"],"author_name":row["author_name"],"created_at":row["created_at"],"can_delete":can_delete_forum(row["author_id"],user)}
+
+    def forum_post_row(conn, post_id):
+        if "\x00" in post_id:
+            raise HTTPException(404,"Forum post not found")
+        row = conn.execute(FORUM_POST_SELECT + " WHERE p.id=?",(post_id,)).fetchone()
+        if not row:
+            raise HTTPException(404,"Forum post not found")
+        return row
+
+    @app.get("/api/forums")
+    def forum_posts(request: Request, q: str = Query(default="",max_length=500), club_id: str = Query(default="",max_length=100), sort: Literal["newest","active"] = "newest"):
+        """Return at most 100 matches; filters apply before the result limit."""
+        user = optional_user(request)
+        conditions,params = [],[]
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]",q):
+            raise HTTPException(422,"Search cannot contain control characters")
+        if club_id:
+            if "\x00" in club_id:
+                raise HTTPException(404,"Club not found")
+            store.record("clubs",club_id)
+            conditions.append("p.club_id=?")
+            params.append(club_id)
+        if q.strip():
+            # '!' escapes SQL LIKE wildcards, so '%' and '_' are literal text.
+            # Club names live in JSON payloads; find their IDs in Python to keep
+            # this query portable without searching unrelated JSON properties.
+            query = q.strip().lower()
+            escaped = query.replace("!","!!").replace("%","!%").replace("_","!_")
+            matching_clubs = [club["id"] for club in store.records("clubs") if query in club["name"].lower()]
+            text_condition = "(LOWER(p.title) LIKE ? ESCAPE '!' OR LOWER(p.body) LIKE ? ESCAPE '!'"
+            params.extend([f"%{escaped}%",f"%{escaped}%"])
+            if matching_clubs:
+                text_condition += " OR p.club_id IN (" + ",".join("?" for _ in matching_clubs) + ")"
+                params.extend(matching_clubs)
+            conditions.append(text_condition+")")
+        where = " WHERE " + " AND ".join(conditions) if conditions else ""
+        order = "last_activity_at DESC,p.id DESC" if sort == "active" else "p.created_at DESC,p.id DESC"
+        with store.connect() as conn:
+            rows = conn.execute(FORUM_POST_SELECT+where+" ORDER BY "+order+" LIMIT 100",params).fetchall()
+        return [public_forum_post(row,user) for row in rows]
+
+    @app.get("/api/forums/{post_id}")
+    def forum_thread(post_id: str,request: Request):
+        user = optional_user(request)
+        with store.connect() as conn:
+            post = public_forum_post(forum_post_row(conn,post_id),user)
+            rows = conn.execute("SELECT c.*,u.display_name AS author_name FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? ORDER BY c.created_at,c.id LIMIT ?",(post_id,FORUM_COMMENT_LIMIT+1)).fetchall()
+        if len(rows) > FORUM_COMMENT_LIMIT:
+            raise HTTPException(409,"This thread exceeds the 1,000-comment display limit. Please contact an administrator.")
+        return {**post,"comments":[public_forum_comment(row,user) for row in rows]}
+
+    @app.post("/api/forums",status_code=201)
+    def create_forum_post(body: ForumPostCreate,user=Depends(current_user)):
+        post_id,created_at = str(uuid.uuid4()),now_iso()
+        try:
+            with store.connect() as conn:
+                if not conn.execute("SELECT 1 FROM clubs WHERE id=?",(body.club_id,)).fetchone():
+                    raise HTTPException(404,"Club not found")
+                conn.execute("INSERT INTO forum_posts(id,club_id,author_id,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?)",(post_id,body.club_id,user["id"],body.title,body.body,created_at,created_at))
+                post = public_forum_post(forum_post_row(conn,post_id),user)
+        except store.IntegrityError:
+            raise HTTPException(409,"The club or account changed. Refresh and try again.")
+        return post
+
+    @app.post("/api/forums/{post_id}/comments",status_code=201)
+    def create_forum_comment(post_id: str,body: ForumCommentCreate,user=Depends(current_user)):
+        comment_id,created_at = str(uuid.uuid4()),now_iso()
+        try:
+            with store.connect() as conn:
+                # The same per-thread lock protects comments and deletion in
+                # both stores, and makes the finite thread limit atomic.
+                conn.lock("forum-post:"+post_id)
+                forum_post_row(conn,post_id)
+                count = conn.execute("SELECT COUNT(*) FROM forum_comments WHERE post_id=?",(post_id,)).fetchone()[0]
+                if count >= FORUM_COMMENT_LIMIT:
+                    raise HTTPException(409,"This thread has reached its 1,000-comment limit. Start a new post.")
+                conn.execute("INSERT INTO forum_comments(id,post_id,author_id,body,created_at) VALUES (?,?,?,?,?)",(comment_id,post_id,user["id"],body.body,created_at))
+                row = conn.execute("SELECT c.*,u.display_name AS author_name FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.id=?",(comment_id,)).fetchone()
+                comment = public_forum_comment(row,user)
+        except store.IntegrityError:
+            raise HTTPException(409,"The thread or account changed. Refresh and try again.")
+        return comment
+
+    @app.delete("/api/forums/{post_id}")
+    def delete_forum_post(post_id: str,user=Depends(current_user)):
+        with store.connect() as conn:
+            conn.lock("forum-post:"+post_id)
+            post = forum_post_row(conn,post_id)
+            if not can_delete_forum(post["author_id"],user):
+                raise HTTPException(403,"Only the author or an administrator can delete this post")
+            conn.execute("DELETE FROM reports WHERE (kind='forum_post' AND target_id=?) OR (kind='forum_comment' AND target_id IN (SELECT id FROM forum_comments WHERE post_id=?))",(post_id,post_id))
+            conn.execute("DELETE FROM forum_posts WHERE id=?",(post_id,))
+        return {"ok":True}
+
+    @app.delete("/api/forums/{post_id}/comments/{comment_id}")
+    def delete_forum_comment(post_id: str,comment_id: str,user=Depends(current_user)):
+        if "\x00" in comment_id:
+            raise HTTPException(404,"Forum comment not found")
+        with store.connect() as conn:
+            conn.lock("forum-post:"+post_id)
+            forum_post_row(conn,post_id)
+            comment = conn.execute("SELECT author_id FROM forum_comments WHERE id=? AND post_id=?",(comment_id,post_id)).fetchone()
+            if not comment:
+                raise HTTPException(404,"Forum comment not found")
+            if not can_delete_forum(comment["author_id"],user):
+                raise HTTPException(403,"Only the author or an administrator can delete this comment")
+            conn.execute("DELETE FROM reports WHERE kind='forum_comment' AND target_id=?",(comment_id,))
+            conn.execute("DELETE FROM forum_comments WHERE id=? AND post_id=?",(comment_id,post_id))
+        return {"ok":True}
 
     @app.get("/api/clubs")
     def clubs(q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
@@ -724,8 +892,14 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
 
     @app.post("/api/reports")
     def reports(body: Report,user=Depends(current_user)):
-        any_event(body.target_id) if body.kind == "event" else store.record("clubs",body.target_id)
         with store.connect() as conn:
+            if body.kind == "forum_post":
+                forum_post_row(conn,body.target_id)
+            elif body.kind == "forum_comment":
+                if "\x00" in body.target_id or not conn.execute("SELECT 1 FROM forum_comments WHERE id=?",(body.target_id,)).fetchone():
+                    raise HTTPException(404,"Forum comment not found")
+            else:
+                any_event(body.target_id) if body.kind == "event" else store.record("clubs",body.target_id)
             conn.execute("INSERT INTO reports VALUES (?,?,?,?,?,?)",(str(uuid.uuid4()),user["id"],body.kind,body.target_id,body.reason,now_iso()))
         return {"ok":True}
 

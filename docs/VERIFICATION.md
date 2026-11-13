@@ -1,5 +1,14 @@
 # Verification record
 
+## Forums update — November 12, 2026
+
+- Optimized Next.js build passed, including `/forums` and `/forums/[id]`; TypeScript passed.
+- Backend regression suite: **28 passed, 24 skipped**, including 12 new forum tests. Skipped cases require an opt-in Postgres test database; no external database was accessed.
+- Forum checks cover post/comment creation, public-field privacy, search/filter/sort behavior, author/admin permissions, account/club/post deletion cascades, persistence after restart, reports, content limits, and rate limiting.
+- Browser visual verification was unavailable: the browser inventory contained no enabled browser surface and native Chrome access timed out. Responsive styles and the six-item compact navigation were reviewed in source.
+
+## Initial prototype checks
+
 Run date: October 22, 2026. Local macOS ARM64 workspace, Node 24.21.0, Python 3.14, Next.js 16.4.2 and React 19.3.1. Direct Python dependencies are pinned; the web dependency resolution is recorded in `pnpm-lock.yaml`.
 
 | Check | Result | Scope |

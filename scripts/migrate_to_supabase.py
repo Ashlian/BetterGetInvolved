@@ -22,7 +22,7 @@ from backend.db import Postgres  # noqa: E402
 from dev import read_env_file  # noqa: E402
 
 # Parents before children, so foreign keys always resolve.
-TABLES = ["clubs", "events", "users", "sessions", "officers", "follows", "bookmarks", "dismissals", "saves", "rsvps", "live_events", "live_saves", "sync_state", "reports"]
+TABLES = ["clubs", "events", "users", "sessions", "officers", "follows", "bookmarks", "dismissals", "saves", "rsvps", "live_events", "live_saves", "sync_state", "reports", "forum_posts", "forum_comments"]
 
 
 def main():

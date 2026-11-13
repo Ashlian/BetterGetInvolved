@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {ArrowLeft, ArrowUpRight, Bookmark, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, Heart, LoaderCircle, LogIn, Radio, Search, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Users, UserRound, X} from 'lucide-react';
+import {ArrowLeft, ArrowUpRight, Bookmark, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, Heart, LoaderCircle, LogIn, MessageSquare, Radio, Search, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Users, UserRound, X} from 'lucide-react';
 import {api, post, cleanName, dateFormat, dateKey, eventEnd, eventTime, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type CampusEvent, type LiveStatus, type User, type Saved} from '@/lib/api';
 import {AuthDialog, OnboardingDialog, ProfilePanel} from './account';
 import ClubCard from './club-card';
@@ -9,16 +9,17 @@ import Dialog from './dialog';
 import {ClubDetail, EventDetail} from './detail-dialogs';
 import EventCalendar, {EventRow, easternDay} from './event-calendar';
 import OfficerPanel from './officer-panel';
+import ForumsPanel from './forums-panel';
 import {CampusMark, ClubArt, campusSlug, categoryIcon} from './visuals';
 
-type View = 'home' | 'discover' | 'events' | 'saved' | 'profile' | 'officer';
+type View = 'home' | 'discover' | 'events' | 'forums' | 'saved' | 'profile' | 'officer';
 const EMPTY_SAVED: Saved = {club_ids: [], event_ids: [], dismissed_ids: [], maybe_later_ids: [], rsvps: {}};
-const NAV = [{id: 'home' as const, title: 'Today', icon: Sun}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'saved' as const, title: 'Saved', icon: Bookmark}];
-const viewTitles: Record<View, string> = {home: 'Today', discover: 'Discover', events: 'Events', saved: 'Saved', profile: 'Profile', officer: 'Manage'};
+const NAV = [{id: 'home' as const, title: 'Today', icon: Sun}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'forums' as const, title: 'Forums', icon: MessageSquare}, {id: 'saved' as const, title: 'Saved', icon: Bookmark}];
+const viewTitles: Record<View, string> = {home: 'Today', discover: 'Discover', events: 'Events', forums: 'Forums', saved: 'Saved', profile: 'Profile', officer: 'Manage'};
 const INTEREST_SHORTCUTS = ['Technology', 'Arts & Music', 'Volunteering', 'Outdoors', 'Culture', 'Science'];
 
-export default function CampusApp({initialClubId, initialEventId}: {initialClubId?: string; initialEventId?: string} = {}) {
-  const [view, setView] = useState<View>('home'); const [directory, setDirectory] = useState(false);
+export default function CampusApp({initialClubId, initialEventId, initialForumPostId, initialView = 'home'}: {initialClubId?: string; initialEventId?: string; initialForumPostId?: string; initialView?: View} = {}) {
+  const [view, setView] = useState<View>(initialView); const [directory, setDirectory] = useState(false);
   const [clubs, setClubs] = useState<Club[]>([]); const [recommendations, setRecommendations] = useState<Recommendation[]>([]); const [method, setMethod] = useState('');
   const [events, setEvents] = useState<CampusEvent[]>([]); const [user, setUser] = useState<User | null>(null); const [saved, setSaved] = useState<Saved>(EMPTY_SAVED);
   const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(''); const [toast, setToast] = useState<{text: string; error?: boolean} | null>(null);
@@ -145,6 +146,7 @@ export default function CampusApp({initialClubId, initialEventId}: {initialClubI
     home: '',
     discover: directory ? `Search all ${clubs.length} clubs by name, interest, or a plain-language request.` : 'Clubs introduced one at a time. Follow, keep for later, or pass.',
     events: eventSource === 'live' ? 'Real Rutgers–New Brunswick club, recreation, and game listings.' : 'Sample events from the demo clubs, for trying saves and RSVPs.',
+    forums: 'Ask questions, share experiences, and talk about your clubs.',
     saved: 'Clubs you follow, events you saved, and clubs to revisit.',
     profile: 'Your interests, home campus, and privacy.',
     officer: 'Edit the clubs and events you manage.',
@@ -202,6 +204,8 @@ export default function CampusApp({initialClubId, initialEventId}: {initialClubI
         </>}
 
         {view === 'events' && <>{hasLive && events.length > 0 && <div className="segmented view-switch" role="group" aria-label="Event source"><button className={eventSource === 'live' ? 'selected' : ''} aria-pressed={eventSource === 'live'} onClick={() => {setEventSource('live'); setEventResults(liveEvents);}}><Radio size={16}/>Rutgers events<span className="count">{liveEvents.length}</span></button><button className={eventSource === 'demo' ? 'selected' : ''} aria-pressed={eventSource === 'demo'} onClick={() => {setEventSource('demo'); setEventCategory(''); setEventResults(events);}}><FlaskConical size={16}/>Demo clubs</button></div>}<div className="filter-bar"><div className="search-input"><Search size={18}/><input aria-label="Search events" placeholder="Try “free beginner AI this week”" value={eventQuery} onChange={e => setEventQuery(e.target.value)} enterKeyHint="search"/>{eventQuery && <button className="icon-button clear-button" aria-label="Clear search" onClick={() => setEventQuery('')}><X size={15}/></button>}</div><label className="select-filter"><span className="sr-only">Campus</span><Compass size={16}/><select value={eventCampus} onChange={e => setEventCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label>{eventSource === 'live' && <label className="select-filter"><span className="sr-only">Category</span><SlidersHorizontal size={16}/><select value={eventCategory} onChange={e => setEventCategory(e.target.value)}><option value="">All categories</option>{liveCategories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label>}</div>{eventSource === 'live' && liveNote && <p className="route-source source-line"><Radio size={14}/>{liveNote}. Only New Brunswick club, arts, recreation, and home-game listings are shown.</p>}{eventsSearchError && <p className="form-error" role="alert">{eventsSearchError}</p>}{eventsSearching && <p className="result-count" role="status">Searching…</p>}<div className={eventsSearching ? 'is-loading' : ''} aria-busy={eventsSearching}><EventCalendar key={eventSource} events={eventResults} savedIds={saved.event_ids} onOpen={openEvent} onSave={event => void saveEvent(event)} today={easternDay(eventSource === 'live' ? new Date(now) : REFERENCE_DATE)} footnote={eventSource === 'live' ? 'Times are Eastern Time. Listings change; confirm details on getINVOLVED before you go.' : 'Times are Eastern Time. “Today” for demo events is October 22, 2026.'}/></div></>}
+
+        {view === 'forums' && <ForumsPanel clubs={clubs} user={user} onSignIn={() => setAuthOpen(true)} initialPostId={initialForumPostId}/>}
 
         {view === 'saved' && (!user ? <GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in to keep track" description="Follow clubs, keep a list of clubs to revisit, and save the events you plan to attend."/> : <><div className="segmented view-switch" role="tablist" aria-label="Saved items">{[{id: 'clubs' as const, label: 'Clubs', count: followedClubs.length}, {id: 'events' as const, label: 'Events', count: savedEvents.length}, {id: 'later' as const, label: 'Later', count: laterClubs.length}].map(tab => <button key={tab.id} role="tab" aria-selected={savedTab === tab.id} className={savedTab === tab.id ? 'selected' : ''} onClick={() => setSavedTab(tab.id)}>{tab.label}<span className="count">{tab.count}</span></button>)}</div>
             {savedTab === 'clubs' && (followedClubs.length ? <div className="club-grid">{followedClubs.map(club => <ClubCard key={club.id} club={club} following onOpen={() => setClubDetail(club)} onFollow={() => void follow(club)}/>)}</div> : <EmptySaved icon="club" onExplore={() => go('discover')}/>)}

@@ -36,10 +36,17 @@ Demo accounts are available only in `DEMO_MODE=1`; the API restricts demo hosts 
 - Local hybrid keyword and dense LSA embedding search with deterministic campus/date/free/beginner constraints, and category-diverse recommendations.
 - Club profiles with source and freshness information; extractive FAQ retrieval with evidence and missing-answer abstention.
 - Event bookmarks, private interested/going intentions, calendar downloads, and cancelled-event handling.
+- A Forums tab for club discussions: searchable posts with titles and text, club filters, recent-activity sorting, comments, author deletion, and content reports. Anyone can read; signed-in users can post and comment. Contributions are public and show the author's display name.
 - Officer-only management of assigned club profiles/FAQs and event creation, editing, cancellation, duplicate protection, and aggregate engagement counts.
 - Backend authorization, request validation, rate limiting, reporting, and reproducible synthetic evaluation fixtures.
 
 The default reference date is **October 22, 2026**. Events are samples; relative-date queries in demo mode use that reference. Display times use `America/New_York`, including daylight-saving changes. Edit `DEMO_REFERENCE_DATE` to change the search reference.
+
+### Club forums
+
+Open **Forums** in the navigation or visit `/forums`. Choose **New post**, select a club, and enter a title and message. Open a post to read or add comments. Search matches titles, post text, and club names; the club filter narrows the results. Sort by newest posts or recent activity. Each discussion has a shareable `/forums/{id}` URL.
+
+Posts and comments use the existing account system and persist in the configured SQLite or Supabase Postgres database. The API creates the new tables on startup without replacing existing records. Authors can delete their own contributions, and deleting an account removes its posts and comments. Discussion text is user-contributed content, separate from official club profile information and the FAQ assistant's sources.
 
 ## Architecture and scope
 

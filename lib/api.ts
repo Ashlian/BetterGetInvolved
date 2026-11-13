@@ -22,6 +22,27 @@ export type User = {
 export type Saved = {club_ids: string[]; event_ids: string[]; dismissed_ids: string[]; maybe_later_ids?: string[]; rsvps?: Record<string, 'going' | 'interested'>; live_events?: CampusEvent[]};
 export type Answer = {answer: string; sources: {title: string; url: string; excerpt: string}[]; supported: boolean; method: string};
 export type Analytics = {clubs: {club_id: string; name: string; follows: number; saved_events: number; rsvps: number; events: number}[]; note: string};
+export type ForumPost = {
+  id: string;
+  club_id: string;
+  club_name: string;
+  title: string;
+  body: string;
+  author_name: string;
+  created_at: string;
+  updated_at: string;
+  comment_count: number;
+  can_delete: boolean;
+};
+export type ForumComment = {
+  id: string;
+  post_id: string;
+  body: string;
+  author_name: string;
+  created_at: string;
+  can_delete: boolean;
+};
+export type ForumThread = ForumPost & {comments: ForumComment[]};
 
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {

@@ -20,6 +20,12 @@ The browser sends account email, display name, password at registration/login, a
 
 Accounts can edit preferences, log out, and delete their own stored account records. Organization officers see aggregate counts, not another student's private profile or search history. Reports provide a correction channel; a complete staffed moderator workflow is outside this prototype. Demo credentials are public fixtures and must be disabled before external exposure.
 
+## Public club discussions
+
+Forum posts and comments are public and show the author's current display name. The composer makes this visible before submission; users should keep private contact information and sensitive details out of discussions. Reading and searching require no account; writing uses the existing authenticated session, origin checks, and forum rate limits. The backend selects the author from the session, validates content length, and restricts deletion to the author or a platform admin.
+
+Users can report posts and comments through the existing reporting flow. Removing a post removes its comments; account deletion removes contributions by that account, including its posts and the comments beneath those posts. Text is rendered as text rather than HTML. Forum content is user-contributed and is not added to the FAQ assistant's approved information sources. Public posting does not reveal private saves, interests, email addresses, or event attendance intentions.
+
 ## AI evaluation limits
 
 Citation support and answer relevance are different. A verbatim FAQ passage can be supported but irrelevant to a question. Evaluation records both known-answer correctness and unsupported-question abstention. A passed injection example does not establish comprehensive prompt-injection resistance. LSA and the synonym map have limited coverage, and scores are similarity values rather than calibrated confidence probabilities.

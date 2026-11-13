@@ -22,7 +22,7 @@ All endpoints start `/api`. A Next.js route handler forwards to FastAPI on 127.0
 - POST /events/{id}/save -> {saved:boolean}
 - POST /events/{id}/rsvp {status:'interested'|'going'|'none'} -> {status}
 - GET /events/{id}/calendar -> downloadable ICS
-- POST /reports {kind:'club'|'event'|'answer',target_id,reason} -> {ok:true}
+- POST /reports {kind:'club'|'event'|'answer'|'forum_post'|'forum_comment',target_id,reason} -> {ok:true}
 - GET /officer/clubs -> Club[] (authorized assigned clubs only)
 - POST /officer/events {club_id,title,description,starts_at,ends_at,campus,location,category,cost,beginner_friendly,registration_url?,accessibility?} -> Event
 - PATCH /officer/events/{id} same optional fields + status ('scheduled'|'cancelled') -> Event
@@ -36,6 +36,23 @@ RecommendedClub extends Club with {score:number, explanation:string}
 Event = {id,club_id,club_name,title,description,starts_at:string ISO8601 with timezone,ends_at:string,campus,location,category,cost:number,beginner_friendly:boolean,registration_url:string,accessibility:string,source_url,updated_at,status:'scheduled'|'cancelled',is_demo:boolean}
 
 User = {id,email,display_name,role:'student'|'officer'|'admin',interests:string[],goals:string,campus:string,onboarded:boolean}
+
+## Club forums
+
+- GET /forums?q=&club_id=&sort=newest|active -> ForumPost[] (guest-readable; first 100 matches after filtering and sorting)
+- GET /forums/{post_id} -> ForumThread (guest-readable; up to 1000 comments)
+- POST /forums {club_id,title,body} -> ForumPost (201, signed in)
+- POST /forums/{post_id}/comments {body} -> ForumComment (201, signed in)
+- DELETE /forums/{post_id} -> {ok:true} (author or platform admin)
+- DELETE /forums/{post_id}/comments/{comment_id} -> {ok:true} (comment author or platform admin)
+
+ForumPost = {id,club_id,club_name,title,body,author_name,created_at,updated_at,comment_count,can_delete:boolean}
+
+ForumComment = {id,post_id,body,author_name,created_at,can_delete:boolean}
+
+ForumThread extends ForumPost with {comments:ForumComment[]}. Titles contain 3–160 characters; post bodies 1–10000; comments 1–3000. Whitespace-only submissions are rejected. All text is plain text. Search matches post titles, bodies, and the linked club's name. Authors' current display names are public; emails, account identifiers, and private profile fields are excluded. Public responses include viewer-specific ownership flags and are not cached. Account, club, and post removal cascade to dependent forum content. Discussions are stored in `forum_posts` and `forum_comments` using the existing SQLite/Postgres storage interface.
+
+Threads reject additional comments at 1000 with a descriptive 409 response; clients keep the draft and offer a new discussion. Forum writes are limited to 30 per minute by the existing request limiter. Creating a post requires an existing club. Reporting and deletion validate the target before acting; deleting a comment also verifies its parent post.
 
 Seed data is shared as data/seed.json {clubs:Club[],events:Event[]}. 24+ explicitly labeled fictitious demo clubs/events. No false Rutgers verification or real attendance figures. Dates anchored to Oct 22 2026; UI should display exact dates and not claim currently happening. Backend supports DEMO_REFERENCE_DATE for reproducible eval.
 
