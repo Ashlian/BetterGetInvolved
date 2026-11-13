@@ -1,0 +1,29 @@
+{
+ "id": "amogus-club",
+ "name": "Amogus Club",
+ "short_name": "SUS",
+ "category": "Lifestyle & Hobbies",
+ "description": "Rutgers' home for Among Us and social deduction games. Gather your crewmates, finish your tasks, and figure out who's acting sus before the impostor gets you.",
+ "mission": "Amogus Club brings students together over Among Us and other social deduction games. We host lobby nights where crewmates and impostors face off, custom-rules rounds like Hide and Seek and proximity chat, and the occasional real-life Among Us game across campus with tasks, emergency meetings, and plenty of accusations. You don't need to be good at lying or at spotting liars to join: new players learn the maps, tasks, and voting etiquette in friendly beginner lobbies. Whether you mostly vent, mostly report bodies, or just like yelling \"that's sus\" at your friends, there's a spot on the ship for you.",
+ "interests": ["gaming", "among us", "social deduction", "video games", "party games", "community"],
+ "campus": "",
+ "location": "To be announced by the club officers",
+ "meeting_schedule": "To be announced by the club officers",
+ "beginner_friendly": true,
+ "membership_fee": "Free",
+ "eligibility": "Open to all Rutgers students. No Among Us experience needed.",
+ "contact_email": "",
+ "website": "",
+ "instagram": "",
+ "discord": "",
+ "faqs": [
+  {"question": "Do I need to own Among Us?", "answer": "Among Us is free on mobile, so you can join lobby nights from your phone. Real-life games need no device at all."},
+  {"question": "I've never played. Can I still join?", "answer": "Yes. Beginner lobbies walk new crewmates through the maps, tasks, and how emergency meetings and voting work."},
+  {"question": "What is a real-life Among Us game?", "answer": "Players get secret roles and complete small tasks around a building while impostors try to tag them. Anyone can call an emergency meeting to discuss and vote someone out."}
+ ],
+ "source_url": "/clubs/amogus-club",
+ "updated_at": "2026-11-13T12:00:00-05:00",
+ "verification": "verified",
+ "color": "#C51111",
+ "featured": false
+}

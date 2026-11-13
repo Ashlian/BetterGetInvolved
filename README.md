@@ -56,6 +56,21 @@ Supabase is used as a Postgres database only: the FastAPI backend keeps its own 
 
 Real officer verification, production infrastructure, human research, and measured student impact remain to be completed. Secondary social matching, mobile apps, notification delivery, and flyer extraction are outside this build. This is a working local prototype, not a completed campus launch.
 
+## Club owners and the club manager
+
+Students who own a club see a **Club manager** tab (and a "Clubs you manage" list in Profile). There they can edit everything on their club's profile: name, short name, category, campus, tags, description, about text, meeting time and place, fee, eligibility, contact email, website, Instagram, Discord, accent color, and the published Q&A, and they can publish events. Owners can also upload a **logo** (PNG, JPEG, WebP, or GIF, up to 1 MB; SVG is refused because it can carry scripts). The server checks the file's actual bytes, stores it in the `club_logos` table, and serves it at `/api/clubs/{id}/logo`; it replaces the colored category tile on the club's page, cards, and discovery view. To bulk-load logos, list `{name, profile_url, image_url}` entries in a JSON file and run `scripts/import_club_logos.py <file> --dry-run`, then without `--dry-run`. It matches clubs by profile URL or name, downscales images to 320 px WebP when Pillow is installed (`pip install pillow`), and never overwrites a logo an owner uploaded unless you pass `--replace`. Ownership is checked on the server for every change; owning one club never grants access to another. Once owners edit an imported club, its profile is labeled as maintained by the club's owners.
+
+Ownership is granted by site admins from the command line (there is no self-service claim yet):
+
+```bash
+.venv\Scripts\python scripts\manage_clubs.py add data\clubs\amogus-club.json
+.venv\Scripts\python scripts\manage_clubs.py grant amogus-club sm3584 ap2999 amw408 akn74
+.venv\Scripts\python scripts\manage_clubs.py revoke amogus-club ap2999
+.venv\Scripts\python scripts\manage_clubs.py owners amogus-club
+```
+
+A bare NetID means `NetID@scarletmail.rutgers.edu`. Owners who haven't signed in yet are stored as pending (`club_owner_invites`) and get access at their first ScarletMail sign-in.
+
 ## Signing in with ScarletMail
 
 The backend verifies Google's signed ID token and accepts only verified accounts on the ScarletMail Workspace domain (the token's `hd` claim must be `scarletmail.rutgers.edu`, so personal Gmail addresses are rejected). Set up a Google OAuth client once:

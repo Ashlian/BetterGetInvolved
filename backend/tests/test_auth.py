@@ -160,3 +160,100 @@ def test_existing_database_gains_new_user_columns(tmp_path):
         columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         assert {"major", "google_sub"} <= columns
         assert conn.execute("SELECT major FROM users WHERE id='old'").fetchone() == ("",)
+
+
+def grant(db, club_id, email):
+    from backend.app import grant_club_owner
+    from backend.db import SQLite
+    with SQLite(db).connect() as conn:
+        return grant_club_owner(conn, club_id, email)
+
+
+def test_pending_owner_gets_club_manager_access_at_first_sign_in(api):
+    client, db = api
+    assert grant(db, "chess", f"OWNER@{DOMAIN}") == "invited"
+    user = google(client, sub="g-owner", email=f"owner@{DOMAIN}").json()
+    assert user["managed_club_ids"] == ["chess"]
+    assert client.get("/api/auth/me").json()["managed_club_ids"] == ["chess"]
+    assert [c["id"] for c in client.get("/api/officer/clubs").json()] == ["chess"]
+    with sqlite3.connect(db) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM club_owner_invites").fetchone()[0] == 0
+    # An existing account is granted immediately.
+    assert grant(db, "bio", f"owner@{DOMAIN}") == "granted"
+    assert client.get("/api/auth/me").json()["managed_club_ids"] == ["bio", "chess"]
+
+
+def test_non_owners_cannot_open_the_club_manager_or_edit(api):
+    client, db = api
+    user = google(client).json()
+    assert user["managed_club_ids"] == []
+    assert client.get("/api/officer/clubs").status_code == 403
+    assert client.put("/api/officer/clubs/chess", json={"description": "Taken over by a random student."}).status_code == 403
+    grant(db, "bio", f"ab123@{DOMAIN}")
+    # Owning one club doesn't open another.
+    assert client.put("/api/officer/clubs/chess", json={"description": "Taken over by a random student."}).status_code == 403
+
+
+def test_owner_can_edit_every_club_field_including_tags(api):
+    client, db = api
+    grant(db, "chess", f"ab123@{DOMAIN}")
+    google(client)
+    changes = {"name": "Knight Riders Chess", "short_name": "KRC", "category": "Lifestyle & Hobbies", "description": "Casual and rated chess for every level.",
+               "mission": "Teach chess and run weekly tournaments.", "interests": ["chess", " strategy ", "chess", "board games"], "campus": "",
+               "location": "Busch Student Center 116", "meeting_schedule": "Tuesdays 8 PM", "membership_fee": "Free", "eligibility": "All students",
+               "contact_email": "knights@scarletmail.rutgers.edu", "website": "https://example.com", "instagram": "https://instagram.com/knights",
+               "discord": "https://discord.gg/knights", "color": "#123ABC", "beginner_friendly": True,
+               "faqs": [{"question": "Do I need a board?", "answer": "No, we bring boards and clocks."}]}
+    response = client.put("/api/officer/clubs/chess", json=changes)
+    assert response.status_code == 200, response.text
+    saved = client.get("/api/clubs/chess").json()
+    assert saved["name"] == "Knight Riders Chess" and saved["interests"] == ["chess", "strategy", "board games"]
+    assert saved["color"] == "#123ABC" and saved["campus"] == "" and saved["discord"] == "https://discord.gg/knights"
+    assert client.put("/api/officer/clubs/chess", json={"color": "red"}).status_code == 422
+    assert client.put("/api/officer/clubs/chess", json={"interests": ["x" * 61]}).status_code == 422
+    assert client.put("/api/officer/clubs/chess", json={"verification": "verified"}).status_code == 422
+
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+
+
+def test_owner_uploads_replaces_and_removes_a_logo(api):
+    client, db = api
+    grant(db, "chess", f"ab123@{DOMAIN}")
+    google(client)
+    response = client.put("/api/officer/clubs/chess/logo", content=PNG, headers={"Content-Type": "image/png"})
+    assert response.status_code == 200, response.text
+    logo_url = response.json()["logo_url"]
+    assert logo_url.startswith("/api/clubs/chess/logo?v=")
+    assert client.get("/api/clubs/chess").json()["logo_url"] == logo_url
+    client.post("/api/auth/logout")
+    image = client.get(logo_url)  # anyone can see a logo
+    assert image.status_code == 200 and image.content == PNG and image.headers["content-type"] == "image/png"
+    assert "sandbox" in image.headers["content-security-policy"] and image.headers["x-content-type-options"] == "nosniff"
+    google(client)
+    # Editing the profile keeps the logo.
+    client.put("/api/officer/clubs/chess", json={"description": "Casual and rated chess for every level."})
+    assert client.get("/api/clubs/chess").json()["logo_url"] == logo_url
+    jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+    assert client.put("/api/officer/clubs/chess/logo", content=jpeg).status_code == 200
+    assert client.get("/api/clubs/chess/logo").headers["content-type"] == "image/jpeg"
+    assert client.delete("/api/officer/clubs/chess/logo").status_code == 200
+    assert "logo_url" not in client.get("/api/clubs/chess").json()
+    assert client.get("/api/clubs/chess/logo").status_code == 404
+
+
+def test_logo_uploads_are_checked(api):
+    client, db = api
+    google(client)
+    # Not an owner of this club.
+    assert client.put("/api/officer/clubs/chess/logo", content=PNG).status_code == 403
+    grant(db, "chess", f"ab123@{DOMAIN}")
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+    for bad in (svg, b"<html>hi</html>", b"GIF8"):
+        assert client.put("/api/officer/clubs/chess/logo", content=bad, headers={"Content-Type": "image/png"}).status_code == 415
+    too_big = PNG + b"\x00" * (1024 * 1024)
+    assert client.put("/api/officer/clubs/chess/logo", content=too_big).status_code == 413
+    # Ordinary requests keep the small body limit.
+    assert client.put("/api/officer/clubs/chess", content=b"{" + b" " * 70000 + b"}", headers={"Content-Type": "application/json"}).status_code == 413
+    client.post("/api/auth/logout")
+    assert client.put("/api/officer/clubs/chess/logo", content=PNG).status_code == 401

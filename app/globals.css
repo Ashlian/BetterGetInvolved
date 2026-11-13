@@ -232,6 +232,9 @@ section+section{margin-top:36px}
 .tile-small{width:36px;height:36px;border-radius:9px}
 .tile-regular{width:52px;height:52px;border-radius:13px}
 .tile-large{width:76px;height:76px;border-radius:19px}
+.club-logo{object-fit:cover;background:#fff}
+.logo-editor{display:flex;gap:16px;align-items:flex-start}
+.logo-editor .form-stack{flex:1;gap:6px}
 .later-card{display:flex;flex-direction:column}
 .later-card .text-button{align-self:flex-start;padding:0 4px}
 
@@ -447,6 +450,15 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .profile-aside{display:flex;flex-direction:column;gap:12px}
 .privacy-card{padding:20px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .privacy-card>svg{color:var(--accent)}
+.managed-clubs-card{padding:20px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;margin-bottom:12px}
+.managed-clubs-card>svg{color:var(--accent)}
+.managed-clubs-card ul{list-style:none;display:flex;flex-direction:column;gap:6px;width:100%;font-size:var(--t-subhead)}
+.managed-clubs-card li{display:flex;align-items:center;gap:8px}
+.club-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.tag-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag-editor .subtle-tag{display:inline-flex;align-items:center;gap:4px}
+.tag-editor .subtle-tag button{border:0;background:none;color:inherit;cursor:pointer;padding:0 2px;font-size:15px;line-height:1}
+.color-input{width:56px;height:40px;padding:2px;border-radius:10px}
 .privacy-card p{font-size:var(--t-subhead);color:var(--label-2)}
 .mini-divider{height:.5px;width:100%;background:var(--separator);margin:6px 0}
 .delete-button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 6px;color:var(--danger);font-weight:500;font-size:var(--t-subhead)}

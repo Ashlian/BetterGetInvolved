@@ -6,6 +6,8 @@ export type Club = {
   verification: 'demo' | 'unclaimed' | 'verified'; color: string; featured: boolean;
   /** True when emails or Discord invites were withheld because the visitor isn't signed in. */
   contacts_hidden?: boolean;
+  /** Uploaded by the club's owners; versioned so it can be cached until replaced. */
+  logo_url?: string;
 };
 export type Recommendation = Club & {score: number; explanation: string};
 export type CampusEvent = {
@@ -20,6 +22,8 @@ export type LiveStatus = {synced_at: string | null; count: number; error: string
 export type User = {
   id: string; email: string; display_name: string; role: 'student' | 'officer' | 'admin';
   major: string; interests: string[]; goals: string; campus: string; onboarded: boolean;
+  /** Clubs this account owns and may edit in the club manager. */
+  managed_club_ids?: string[];
 };
 export type AuthConfig = {google_client_id: string | null; allowed_domains: string[]; password_login: boolean};
 export type Saved = {club_ids: string[]; event_ids: string[]; dismissed_ids: string[]; maybe_later_ids?: string[]; rsvps?: Record<string, 'going' | 'interested'>; live_events?: CampusEvent[]};

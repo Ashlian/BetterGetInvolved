@@ -22,8 +22,9 @@ export function CampusMark({campus, short = false}: {campus: string; short?: boo
   return<span className={`campus campus-${campusSlug(campus)}`}><i aria-hidden="true"/>{short ? campus.replace('College Avenue', 'College Ave') : campus}</span>;
 }
 
-// A club's tile: its own color with the category symbol, like an app icon.
-export function ClubArt({category, color, size = 'regular'}: {category: string; color: string; size?: 'small' | 'regular' | 'large'}) {
+// A club's tile: its uploaded logo, or its own color with the category symbol, like an app icon.
+export function ClubArt({category, color, logo, size = 'regular'}: {category: string; color: string; logo?: string; size?: 'small' | 'regular' | 'large'}) {
+  if (logo) return <img className={`club-tile club-logo tile-${size}`} src={logo} alt="" loading="lazy" decoding="async"/>;
   const Icon = categoryIcon(category);
   return <span className={`club-tile tile-${size}`} style={{'--club': color || '#326BDA'} as React.CSSProperties} aria-hidden="true"><Icon strokeWidth={1.75}/></span>;
 }

@@ -4,7 +4,7 @@ import {CampusMark, ClubArt} from './visuals';
 
 export default function ClubCard({club, following, showReason = true, onOpen, onFollow}: {club: Club | Recommendation; index?: number; following: boolean; showReason?: boolean; onOpen: () => void; onFollow: () => void}) {
   return <article className="club-card" style={{'--club': club.color} as React.CSSProperties}>
-    <div className="club-card-head"><ClubArt category={club.category} color={club.color}/>
+    <div className="club-card-head"><ClubArt category={club.category} color={club.color} logo={club.logo_url}/>
       <button className={`card-save icon-button ${following ? 'is-saved' : ''}`} onClick={onFollow} aria-label={following ? `Unfollow ${cleanName(club.name)}` : `Follow ${cleanName(club.name)}`} aria-pressed={following}><Bookmark size={19} fill={following ? 'currentColor' : 'none'}/></button></div>
     <button className="club-card-body plain-button" onClick={onOpen}>
       <span className="category-label">{club.category}</span>
