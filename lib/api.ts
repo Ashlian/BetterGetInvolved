@@ -4,6 +4,8 @@ export type Club = {
   membership_fee: string; eligibility: string; contact_email: string; website: string; instagram?: string;
   discord?: string; faqs: {question: string; answer: string}[]; source_url: string; updated_at: string;
   verification: 'demo' | 'unclaimed' | 'verified'; color: string; featured: boolean;
+  /** True when emails or Discord invites were withheld because the visitor isn't signed in. */
+  contacts_hidden?: boolean;
 };
 export type Recommendation = Club & {score: number; explanation: string};
 export type CampusEvent = {
@@ -17,8 +19,9 @@ export type CampusEvent = {
 export type LiveStatus = {synced_at: string | null; count: number; error: string | null; source: string; source_url: string};
 export type User = {
   id: string; email: string; display_name: string; role: 'student' | 'officer' | 'admin';
-  interests: string[]; goals: string; campus: string; onboarded: boolean;
+  major: string; interests: string[]; goals: string; campus: string; onboarded: boolean;
 };
+export type AuthConfig = {google_client_id: string | null; allowed_domains: string[]; password_login: boolean};
 export type Saved = {club_ids: string[]; event_ids: string[]; dismissed_ids: string[]; maybe_later_ids?: string[]; rsvps?: Record<string, 'going' | 'interested'>; live_events?: CampusEvent[]};
 export type Answer = {answer: string; sources: {title: string; url: string; excerpt: string}[]; supported: boolean; method: string};
 export type Analytics = {clubs: {club_id: string; name: string; follows: number; saved_events: number; rsvps: number; events: number}[]; note: string};
@@ -70,4 +73,6 @@ export const timeRange = (event: CampusEvent) => event.ends_at ? `${eventTime(ev
 export const costLabel = (event: CampusEvent) => event.cost === 0 ? 'Free' : event.cost === null ? 'Cost not listed' : `$${event.cost.toFixed(2)}`;
 export function relativeTime(iso: string) {const minutes = Math.round((Date.now() - Date.parse(iso)) / 60000); return minutes < 2 ? 'just now' : minutes < 60 ? `${minutes} min ago` : minutes < 48 * 60 ? `${Math.round(minutes / 60)} h ago` : dateFormat(iso, {month: 'short', day: 'numeric'});}
 export const CAMPUSES = ['College Avenue', 'Busch', 'Livingston', 'Cook', 'Douglass'];
+/** Suggestions for the major field; students can type any major. */
+export const MAJORS = ['Accounting', 'Biological Sciences', 'Biomedical Engineering', 'Business Analytics and Information Technology', 'Chemical Engineering', 'Chemistry', 'Civil Engineering', 'Cognitive Science', 'Communication', 'Computer Engineering', 'Computer Science', 'Criminal Justice', 'Data Science', 'Economics', 'Electrical Engineering', 'English', 'Environmental Sciences', 'Exercise Science', 'Finance', 'Food Science', 'History', 'Industrial Engineering', 'Information Technology and Informatics', 'Journalism and Media Studies', 'Labor and Employment Relations', 'Management', 'Marine Sciences', 'Marketing', 'Mathematics', 'Mechanical Engineering', 'Nursing', 'Nutritional Sciences', 'Pharmacy', 'Philosophy', 'Physics', 'Planning and Public Policy', 'Political Science', 'Psychology', 'Public Health', 'Sociology', 'Supply Chain Management', 'Visual Arts', 'Undecided'];
 export const INTERESTS = ['Technology', 'Arts & Music', 'Volunteering', 'Entrepreneurship', 'Culture', 'Science', 'Outdoors', 'Wellbeing', 'Gaming', 'Professional growth'];

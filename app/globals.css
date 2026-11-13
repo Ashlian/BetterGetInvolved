@@ -428,6 +428,8 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .auth-tabs button.active{background:var(--segment);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .privacy-note{display:flex;gap:10px;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--fill);font-size:var(--t-footnote);color:var(--label-2)}
 .privacy-note svg{color:var(--accent)}
+.google-signin{display:flex;justify-content:center;min-height:44px}
+.demo-credentials form{margin-top:8px}
 .demo-credentials{margin-top:12px;font-size:var(--t-footnote);color:var(--label-2)}
 .demo-credentials summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:500;color:var(--accent);font-size:var(--t-subhead)}
 .demo-credentials p{margin-top:8px;line-height:1.6}
