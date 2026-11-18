@@ -29,6 +29,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from . import graph as club_graph
 from . import live_events
 from .db import SQLite, open_database
 from .search import HybridIndex, MODEL_NAME, answer_faq, parse_constraints, same_campus, tokens
@@ -333,6 +334,8 @@ CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, club_id TEXT NOT NULL REF
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('student','officer','admin')), interests TEXT NOT NULL DEFAULT '[]', goals TEXT NOT NULL DEFAULT '', campus TEXT NOT NULL DEFAULT '', onboarded INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, major TEXT NOT NULL DEFAULT '', google_sub TEXT);
 CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS officers(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
+CREATE TABLE IF NOT EXISTS graph_edges(src TEXT NOT NULL, dst TEXT NOT NULL, kind TEXT NOT NULL, weight REAL NOT NULL, PRIMARY KEY(src,dst,kind));
+CREATE INDEX IF NOT EXISTS graph_edges_dst_idx ON graph_edges(dst);
 CREATE TABLE IF NOT EXISTS club_logos(club_id TEXT PRIMARY KEY REFERENCES clubs(id) ON DELETE CASCADE, content_type TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS club_owner_invites(email TEXT NOT NULL, club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE, created_at TEXT NOT NULL, PRIMARY KEY(email,club_id));
 CREATE TABLE IF NOT EXISTS follows(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
@@ -436,6 +439,24 @@ class Store:
             else:
                 # A previously used demo database must not preserve known logins.
                 conn.execute("DELETE FROM users WHERE id IN ('demo-student','demo-officer')")
+
+    def load_graph(self):
+        """(fingerprint, edges) of the stored club graph, or (None, [])."""
+        with self.connect() as conn:
+            state = conn.execute("SELECT value FROM sync_state WHERE key='club_graph'").fetchone()
+            if not state:
+                return None, []
+            edges = [(r[0], r[1], r[2], float(r[3])) for r in conn.execute("SELECT src,dst,kind,weight FROM graph_edges")]
+        return json.loads(state[0]).get("fingerprint"), edges
+
+    def save_graph(self, edges, fingerprint, stats):
+        with self.connect() as conn:
+            # One transaction: readers see either the old graph or the new one.
+            conn.execute("DELETE FROM graph_edges")
+            for start in range(0, len(edges), 400):
+                chunk = edges[start:start + 400]
+                conn.execute("INSERT INTO graph_edges(src,dst,kind,weight) VALUES " + ",".join("(?,?,?,?)" for _ in chunk), [value for edge in chunk for value in edge])
+            conn.execute("INSERT INTO sync_state VALUES ('club_graph',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps({"fingerprint": fingerprint, "built_at": now_iso(), **stats}),))
 
     def replace_live_events(self, events, synced_at):
         """Upsert the feed. Rows are never deleted, so saved events keep their details."""
@@ -1074,6 +1095,50 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             categories[best["category"]] += 1
             candidates.remove(best)
         return {"clubs":selected,"method":"Local TF-IDF + LSA similarity, explicit interests and goals, campus preference, and category diversity. Scores are similarities, not probabilities." if has_profile else "Cold start: a varied mix of clubs. Add interests to personalize."}
+
+    graph_state = {"fingerprint": None, "graph": None}
+    graph_lock = threading.Lock()
+
+    def current_graph(clubs):
+        """The club graph for this catalog: memory, else Supabase, else rebuilt and stored."""
+        fingerprint = club_graph.fingerprint(clubs)
+        with graph_lock:
+            if graph_state["fingerprint"] != fingerprint:
+                stored_fingerprint, edges = store.load_graph()
+                if stored_fingerprint != fingerprint:
+                    edges = club_graph.build_edges(clubs)
+                    graph = club_graph.ClubGraph(edges)
+                    store.save_graph(edges, fingerprint, graph.stats())
+                else:
+                    graph = club_graph.ClubGraph(edges)
+                graph_state.update(fingerprint=fingerprint, graph=graph)
+            return graph_state["graph"]
+
+    def cofollow_counts():
+        # Only aggregate pair counts leave the database; nobody's follow list does.
+        with store.connect() as conn:
+            rows = conn.execute("SELECT a.club_id, b.club_id, COUNT(*) FROM follows a JOIN follows b ON a.user_id=b.user_id AND a.club_id<b.club_id GROUP BY a.club_id, b.club_id HAVING COUNT(*)>=?", (club_graph.MIN_COFOLLOW,)).fetchall()
+        return [(r[0], r[1], int(r[2])) for r in rows]
+
+    @app.get("/api/for-you")
+    def for_you(request: Request, limit: int = Query(default=24, ge=1, le=60)):
+        user = optional_user(request)
+        clubs = store.records("clubs")
+        graph = current_graph(clubs)
+        picked, method = [], "cold_start"
+        if user:
+            with store.connect() as conn:
+                follows = [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=?", (user["id"],))]
+                bookmarks = [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=?", (user["id"],))]
+                dismissed = [r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=?", (user["id"],))]
+            profile_text = " ".join([*user["interests"], user["major"], user["goals"]]).strip()
+            text_scores = club_index.scores(clubs, profile_text) if tokens(profile_text) else {}
+            picked, method = club_graph.recommend(graph, clubs, follows=follows, bookmarks=bookmarks, dismissed=dismissed, interests=user["interests"], major=user["major"], text_scores=text_scores, cofollow=cofollow_counts(), limit=limit)
+        notes = {
+            "graph": "Personalized PageRank over the club graph: walks out from clubs you follow or saved and the topics in your interests and major. Passed clubs push their neighbours down.",
+            "cold_start": "Nothing to start from yet. Sign in, pick interests or a major, or follow a few clubs, and For you fills up.",
+        }
+        return {"clubs": [{**public_club(c, user), "score": c["score"], "explanation": c["explanation"], "reasons": c["reasons"]} for c in picked], "method": method, "note": notes[method], "graph": graph.stats()}
 
     @app.post("/api/reports")
     def reports(body: Report,user=Depends(current_user)):

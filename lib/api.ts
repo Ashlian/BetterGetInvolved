@@ -9,7 +9,10 @@ export type Club = {
   /** Uploaded by the club's owners; versioned so it can be cached until replaced. */
   logo_url?: string;
 };
-export type Recommendation = Club & {score: number; explanation: string};
+export type Recommendation = Club & {score: number; explanation: string; reasons?: string[]};
+/** Discover's "For you" mode: personalized PageRank over the club graph. */
+export type ForYou = {clubs: Recommendation[]; method: 'graph' | 'cold_start'; note: string; graph: Record<string, number>};
+export type DiscoverMode = 'random' | 'foryou';
 export type CampusEvent = {
   id: string; club_id: string; club_name: string; title: string; description: string; starts_at: string;
   ends_at: string | null; campus: string; location: string; category: string; cost: number | null;

@@ -241,6 +241,18 @@ section+section{margin-top:36px}
 /* Discover */
 .discovery-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:28px;align-items:start}
 .discovery-stage{max-width:620px;width:100%;margin:0 auto}
+.mode-switch-block{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:18px;text-align:center}
+.mode-switch-row{display:flex;align-items:center;gap:10px}
+.mode-label{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 6px;border:0;background:none;font-size:var(--t-subhead);font-weight:500;color:var(--label-2);cursor:pointer}
+.mode-label.on{color:var(--label);font-weight:600}
+.mode-label.on svg{color:var(--accent)}
+.mode-switch{position:relative;width:54px;height:32px;border-radius:16px;border:0;background:var(--fill);cursor:pointer;transition:background .2s;flex:none}
+.mode-switch.is-on{background:var(--accent)}
+.mode-switch-thumb{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.mode-switch.is-on .mode-switch-thumb{transform:translateX(22px)}
+.mode-switch:focus-visible,.mode-label:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mode-explainer{max-width:480px;font-size:var(--t-footnote);color:var(--label-2);line-height:1.5}
+@media (prefers-reduced-motion:reduce){.mode-switch,.mode-switch-thumb{transition:none}}
 .discovery-card{overflow:hidden}
 .discovery-cover{position:relative;display:grid;place-items:center;height:180px;background:radial-gradient(120% 140% at 50% 0%,color-mix(in srgb,var(--club) 26%,var(--surface)),var(--surface) 80%)}
 .discovery-cover .tile-large{width:96px;height:96px;border-radius:24px;box-shadow:0 12px 30px color-mix(in srgb,var(--club) 40%,transparent)}

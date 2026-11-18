@@ -71,6 +71,15 @@ Ownership is granted by site admins from the command line (there is no self-serv
 
 A bare NetID means `NetID@scarletmail.rutgers.edu`. Owners who haven't signed in yet are stored as pending (`club_owner_invites`) and get access at their first ScarletMail sign-in.
 
+## Discover modes and the club graph
+
+Discover's one-at-a-time view has a switch with a short explanation under it:
+
+- **Discover** shows every club in a random order (reshuffle any time). Interests and follows are not used.
+- **For you** ranks clubs with **personalized PageRank over a club graph** stored in Supabase (`backend/graph.py`, endpoint `GET /api/for-you`). Each card says why it was picked, for example "Similar to Chess Club, which you follow".
+
+The graph's nodes are clubs, tags, and categories. Stored edges (`graph_edges`) link clubs to their tags and category, and each club to its most similar clubs by description (TF-IDF + LSA cosine, with campus boilerplate words ignored). The graph is rebuilt and re-stored automatically the first time it's needed after club content changes (for example an owner editing tags); `scripts/build_club_graph.py` builds it ahead of time. Live edges come from existing tables at request time: what a student follows, saves, or passes, and "followed together" links between clubs that **at least three people** follow, so no individual's follows can be inferred. A recommendation walk restarts at the student's followed and saved clubs, the tags matching their interests and major, and the clubs whose text best matches their profile; passed clubs push their neighbours down, and a soft penalty keeps one category from filling the stack. With nothing to start from (guests, empty profiles), For you asks the student to sign in, add interests, or follow a club.
+
 ## Signing in with ScarletMail
 
 The backend verifies Google's signed ID token and accepts only verified accounts on the ScarletMail Workspace domain (the token's `hd` claim must be `scarletmail.rutgers.edu`, so personal Gmail addresses are rejected). Set up a Google OAuth client once:
