@@ -10,7 +10,9 @@ async function proxy(request: Request, {params}: {params: Promise<{path: string[
   for (const name of ['host', 'connection', 'content-length', 'transfer-encoding']) headers.delete(name);
   headers.set('accept-encoding', 'identity');
   const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer();
-  if (body && body.byteLength > 65536) return Response.json({detail: 'Request body is too large'}, {status: 413});
+  // Club logo uploads may be up to 1 MB; every other request stays small.
+  const limit = /^officer\/clubs\/[^/]+\/logo$/.test(path.join('/')) ? 1024 * 1024 : 65536;
+  if (body && body.byteLength > limit) return Response.json({detail: limit > 65536 ? 'Logos can be at most 1 MB' : 'Request body is too large'}, {status: 413});
   try {
     const response = await fetch(target, {method: request.method, headers, body, cache: 'no-store', redirect: 'manual', signal: request.signal});
     const outgoing = new Headers(response.headers);

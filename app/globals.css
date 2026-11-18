@@ -232,12 +232,27 @@ section+section{margin-top:36px}
 .tile-small{width:36px;height:36px;border-radius:9px}
 .tile-regular{width:52px;height:52px;border-radius:13px}
 .tile-large{width:76px;height:76px;border-radius:19px}
+.club-logo{object-fit:cover;background:#fff}
+.logo-editor{display:flex;gap:16px;align-items:flex-start}
+.logo-editor .form-stack{flex:1;gap:6px}
 .later-card{display:flex;flex-direction:column}
 .later-card .text-button{align-self:flex-start;padding:0 4px}
 
 /* Discover */
 .discovery-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:28px;align-items:start}
 .discovery-stage{max-width:620px;width:100%;margin:0 auto}
+.mode-switch-block{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:18px;text-align:center}
+.mode-switch-row{display:flex;align-items:center;gap:10px}
+.mode-label{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 6px;border:0;background:none;font-size:var(--t-subhead);font-weight:500;color:var(--label-2);cursor:pointer}
+.mode-label.on{color:var(--label);font-weight:600}
+.mode-label.on svg{color:var(--accent)}
+.mode-switch{position:relative;width:54px;height:32px;border-radius:16px;border:0;background:var(--fill);cursor:pointer;transition:background .2s;flex:none}
+.mode-switch.is-on{background:var(--accent)}
+.mode-switch-thumb{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.mode-switch.is-on .mode-switch-thumb{transform:translateX(22px)}
+.mode-switch:focus-visible,.mode-label:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mode-explainer{max-width:480px;font-size:var(--t-footnote);color:var(--label-2);line-height:1.5}
+@media (prefers-reduced-motion:reduce){.mode-switch,.mode-switch-thumb{transition:none}}
 .discovery-card{overflow:hidden}
 .discovery-cover{position:relative;display:grid;place-items:center;height:180px;background:radial-gradient(120% 140% at 50% 0%,color-mix(in srgb,var(--club) 26%,var(--surface)),var(--surface) 80%)}
 .discovery-cover .tile-large{width:96px;height:96px;border-radius:24px;box-shadow:0 12px 30px color-mix(in srgb,var(--club) 40%,transparent)}
@@ -428,6 +443,8 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .auth-tabs button.active{background:var(--segment);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .privacy-note{display:flex;gap:10px;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--fill);font-size:var(--t-footnote);color:var(--label-2)}
 .privacy-note svg{color:var(--accent)}
+.google-signin{display:flex;justify-content:center;min-height:44px}
+.demo-credentials form{margin-top:8px}
 .demo-credentials{margin-top:12px;font-size:var(--t-footnote);color:var(--label-2)}
 .demo-credentials summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:500;color:var(--accent);font-size:var(--t-subhead)}
 .demo-credentials p{margin-top:8px;line-height:1.6}
@@ -445,6 +462,15 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .profile-aside{display:flex;flex-direction:column;gap:12px}
 .privacy-card{padding:20px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .privacy-card>svg{color:var(--accent)}
+.managed-clubs-card{padding:20px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;margin-bottom:12px}
+.managed-clubs-card>svg{color:var(--accent)}
+.managed-clubs-card ul{list-style:none;display:flex;flex-direction:column;gap:6px;width:100%;font-size:var(--t-subhead)}
+.managed-clubs-card li{display:flex;align-items:center;gap:8px}
+.club-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.tag-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag-editor .subtle-tag{display:inline-flex;align-items:center;gap:4px}
+.tag-editor .subtle-tag button{border:0;background:none;color:inherit;cursor:pointer;padding:0 2px;font-size:15px;line-height:1}
+.color-input{width:56px;height:40px;padding:2px;border-radius:10px}
 .privacy-card p{font-size:var(--t-subhead);color:var(--label-2)}
 .mini-divider{height:.5px;width:100%;background:var(--separator);margin:6px 0}
 .delete-button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 6px;color:var(--danger);font-weight:500;font-size:var(--t-subhead)}

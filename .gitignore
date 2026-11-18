@@ -21,3 +21,5 @@ playwright-report/
 
 # Real club catalog built from The Arc; contains students' contact emails. Share privately, never commit.
 data/rutgers_clubs.json
+# Logo links taken from The Arc (behind Rutgers login); regenerate locally, never commit.
+data/clubs/logo_sources.json

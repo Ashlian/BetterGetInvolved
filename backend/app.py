@@ -15,6 +15,7 @@ import secrets
 import threading
 import time
 import uuid
+import base64
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager, contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -28,6 +29,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from . import graph as club_graph
 from . import live_events
 from .db import SQLite, open_database
 from .search import HybridIndex, MODEL_NAME, answer_faq, parse_constraints, same_campus, tokens
@@ -40,6 +42,69 @@ DEMO_ACCOUNTS = {
     "student@demo.local": ("StudentDemo2026!", "Alex Demo", "student"),
     "officer@demo.local": ("OfficerDemo2026!", "Jordan Demo", "officer"),
 }
+# Only Google accounts on these Workspace domains may sign in (ScarletMail by default).
+DEFAULT_EMAIL_DOMAINS = "scarletmail.rutgers.edu"
+GOOGLE_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
+# Contact details stay private to signed-in students; anonymous visitors get these placeholders.
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+DISCORD_PATTERN = re.compile(r"(?:https?://)?(?:www\.)?(?:discord\.gg|discord(?:app)?\.com/invite)/[\w-]+", re.I)
+HIDDEN_EMAIL = "[email hidden: sign in to see]"
+HIDDEN_DISCORD = "[Discord invite hidden: sign in to see]"
+CLUB_TEXT_FIELDS = ("description", "mission", "meeting_schedule", "location", "eligibility", "membership_fee")
+
+
+LOGO_MAX_BYTES = 1024 * 1024
+LOGO_PATH = re.compile(r"^/api/officer/clubs/[^/]+/logo$")
+# SVG is deliberately excluded: it can carry scripts.
+LOGO_SIGNATURES = (
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"GIF87a", "image/gif"),
+    (b"GIF89a", "image/gif"),
+)
+
+
+def logo_type(data):
+    for signature, content_type in LOGO_SIGNATURES:
+        if data.startswith(signature):
+            return content_type
+    if len(data) > 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def public_club(club, user):
+    """The club as a visitor may see it: signed-in users get everything, others no contacts."""
+    if user:
+        return {**club, "contacts_hidden": False}
+    hidden = False
+
+    def scrub(text):
+        nonlocal hidden
+        cleaned = DISCORD_PATTERN.sub(HIDDEN_DISCORD, EMAIL_PATTERN.sub(HIDDEN_EMAIL, text))
+        hidden = hidden or cleaned != text
+        return cleaned
+
+    out = dict(club)
+    for key in ("contact_email", "discord"):
+        if out.get(key):
+            out[key] = ""
+            hidden = True
+    for key in CLUB_TEXT_FIELDS:
+        if isinstance(out.get(key), str):
+            out[key] = scrub(out[key])
+    out["faqs"] = [{**faq, "question": scrub(faq["question"]), "answer": scrub(faq["answer"])} for faq in out.get("faqs", [])]
+    out["contacts_hidden"] = hidden
+    return out
+
+
+def google_token_verifier(client_id):
+    """Verify a Google Identity Services ID token (signature, expiry, audience, issuer)."""
+    def verify(credential):
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token
+        return id_token.verify_oauth2_token(credential, google_requests.Request(), client_id)
+    return verify
 
 
 def now_iso():
@@ -102,6 +167,7 @@ class Registration(Credentials):
 
 class Profile(Input):
     display_name: str | None = Field(default=None, min_length=1, max_length=80)
+    major: str | None = Field(default=None, max_length=100)
     interests: list[str] | None = Field(default=None, max_length=20)
     goals: str | None = Field(default=None, max_length=1000)
     campus: str | None = Field(default=None, max_length=80)
@@ -113,6 +179,10 @@ class Profile(Input):
         if value is not None and any(not item.strip() or len(item) > 60 for item in value):
             raise ValueError("Each interest must contain 1 to 60 characters")
         return list(dict.fromkeys(item.strip() for item in value)) if value is not None else value
+
+
+class GoogleCredential(Input):
+    credential: str = Field(min_length=20, max_length=4096)
 
 
 class Question(Input):
@@ -222,9 +292,10 @@ class ClubPatch(Input):
     description: str | None = Field(default=None, min_length=10, max_length=5000)
     mission: str | None = Field(default=None, max_length=2000)
     interests: list[str] | None = Field(default=None, max_length=20)
-    campus: str | None = Field(default=None, min_length=1, max_length=80)
+    campus: str | None = Field(default=None, max_length=80)
     location: str | None = Field(default=None, max_length=200)
     meeting_schedule: str | None = Field(default=None, max_length=300)
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     beginner_friendly: bool | None = None
     membership_fee: str | None = Field(default=None, max_length=200)
     eligibility: str | None = Field(default=None, max_length=500)
@@ -233,6 +304,16 @@ class ClubPatch(Input):
     instagram: str | None = Field(default=None, max_length=1000)
     discord: str | None = Field(default=None, max_length=1000)
     faqs: list[FAQ] | None = Field(default=None, max_length=30)
+
+    @field_validator("interests")
+    @classmethod
+    def clean_tags(cls, value):
+        if value is None:
+            return value
+        tags = list(dict.fromkeys(re.sub(r"\s+", " ", tag).strip() for tag in value))
+        if any(not tag or len(tag) > 60 for tag in tags):
+            raise ValueError("Each tag must contain 1 to 60 characters")
+        return tags
 
     @field_validator("website", "instagram", "discord")
     @classmethod
@@ -250,9 +331,13 @@ class ClubPatch(Input):
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS clubs(id TEXT PRIMARY KEY, payload TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, club_id TEXT NOT NULL REFERENCES clubs(id), title_key TEXT NOT NULL, starts_at TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(club_id,title_key,starts_at));
-CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('student','officer','admin')), interests TEXT NOT NULL DEFAULT '[]', goals TEXT NOT NULL DEFAULT '', campus TEXT NOT NULL DEFAULT '', onboarded INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('student','officer','admin')), interests TEXT NOT NULL DEFAULT '[]', goals TEXT NOT NULL DEFAULT '', campus TEXT NOT NULL DEFAULT '', onboarded INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, major TEXT NOT NULL DEFAULT '', google_sub TEXT);
 CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS officers(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
+CREATE TABLE IF NOT EXISTS graph_edges(src TEXT NOT NULL, dst TEXT NOT NULL, kind TEXT NOT NULL, weight REAL NOT NULL, PRIMARY KEY(src,dst,kind));
+CREATE INDEX IF NOT EXISTS graph_edges_dst_idx ON graph_edges(dst);
+CREATE TABLE IF NOT EXISTS club_logos(club_id TEXT PRIMARY KEY REFERENCES clubs(id) ON DELETE CASCADE, content_type TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS club_owner_invites(email TEXT NOT NULL, club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE, created_at TEXT NOT NULL, PRIMARY KEY(email,club_id));
 CREATE TABLE IF NOT EXISTS follows(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
 CREATE TABLE IF NOT EXISTS bookmarks(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
 CREATE TABLE IF NOT EXISTS dismissals(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
@@ -298,8 +383,24 @@ class Store:
     def connect(self):
         return self.db.connect()
 
+    def columns(self, conn, table):
+        if self.db.kind == "sqlite":
+            return {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        return {row[0] for row in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name=?", (table,))}
+
+    def migrate(self):
+        """Add columns introduced after a database was first created (CREATE TABLE won't)."""
+        with self.connect() as conn:
+            existing = self.columns(conn, "users")
+            if "major" not in existing:
+                conn.execute("ALTER TABLE users ADD COLUMN major TEXT NOT NULL DEFAULT ''")
+            if "google_sub" not in existing:
+                conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub_idx ON users(google_sub)")
+
     def initialize(self, seed_path, demo_mode):
         self.db.create_schema(SCHEMA)
+        self.migrate()
         with self.connect() as conn:
             # Idempotent seed import. Officer edits survive server restarts.
             # The real catalog is not in Git (it contains students' contact emails). Without it,
@@ -338,6 +439,24 @@ class Store:
             else:
                 # A previously used demo database must not preserve known logins.
                 conn.execute("DELETE FROM users WHERE id IN ('demo-student','demo-officer')")
+
+    def load_graph(self):
+        """(fingerprint, edges) of the stored club graph, or (None, [])."""
+        with self.connect() as conn:
+            state = conn.execute("SELECT value FROM sync_state WHERE key='club_graph'").fetchone()
+            if not state:
+                return None, []
+            edges = [(r[0], r[1], r[2], float(r[3])) for r in conn.execute("SELECT src,dst,kind,weight FROM graph_edges")]
+        return json.loads(state[0]).get("fingerprint"), edges
+
+    def save_graph(self, edges, fingerprint, stats):
+        with self.connect() as conn:
+            # One transaction: readers see either the old graph or the new one.
+            conn.execute("DELETE FROM graph_edges")
+            for start in range(0, len(edges), 400):
+                chunk = edges[start:start + 400]
+                conn.execute("INSERT INTO graph_edges(src,dst,kind,weight) VALUES " + ",".join("(?,?,?,?)" for _ in chunk), [value for edge in chunk for value in edge])
+            conn.execute("INSERT INTO sync_state VALUES ('club_graph',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps({"fingerprint": fingerprint, "built_at": now_iso(), **stats}),))
 
     def replace_live_events(self, events, synced_at):
         """Upsert the feed. Rows are never deleted, so saved events keep their details."""
@@ -388,14 +507,31 @@ class Store:
         return json.loads(row[0])
 
 
+def claim_club_invites(conn, user_id, email):
+    """Turn ownership granted to an email address into ownership by this account."""
+    conn.execute("INSERT INTO officers(user_id,club_id) SELECT ?,club_id FROM club_owner_invites WHERE email=? ON CONFLICT DO NOTHING", (user_id, email.lower()))
+    conn.execute("DELETE FROM club_owner_invites WHERE email=?", (email.lower(),))
+
+
+def grant_club_owner(conn, club_id, email):
+    """Make an email address an owner of a club: directly if the account exists, else on first sign-in."""
+    email = email.strip().lower()
+    row = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    if row:
+        conn.execute("INSERT INTO officers(user_id,club_id) VALUES (?,?) ON CONFLICT DO NOTHING", (row[0], club_id))
+        return "granted"
+    conn.execute("INSERT INTO club_owner_invites(email,club_id,created_at) VALUES (?,?,?) ON CONFLICT DO NOTHING", (email, club_id, now_iso()))
+    return "invited"
+
+
 def public_user(row):
-    return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"])}
+    return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "major": row["major"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"])}
 
 
 LIVE_SYNC_SECONDS = 3 * 60 * 60
 
 
-def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, database_url=None, db_schema="public"):
+def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, database_url=None, db_schema="public", google_client_id=None, google_verifier=None):
     demo_mode = os.getenv("DEMO_MODE", "1") == "1" if demo_mode is None else demo_mode
     live_sync = os.getenv("LIVE_EVENTS_SYNC", "1") == "1" if live_sync is None else live_sync
     # An explicit file path (tests) always means SQLite; otherwise DATABASE_URL
@@ -406,6 +542,9 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
     allowed_origins = set(os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000").split(","))
     demo_hosts = set(os.getenv("DEMO_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver").split(","))
     reference = os.getenv("DEMO_REFERENCE_DATE", "2026-10-22") if demo_mode else None
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip() if google_client_id is None else google_client_id
+    verify_google = google_verifier or (google_token_verifier(google_client_id) if google_client_id else None)
+    email_domains = [d.strip().lower() for d in os.getenv("ALLOWED_EMAIL_DOMAINS", DEFAULT_EMAIL_DOMAINS).split(",") if d.strip()]
     club_index, event_index = HybridIndex(), HybridIndex()
     windows = defaultdict(deque)
     rate_lock = threading.Lock()
@@ -455,12 +594,12 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             if request.headers.get("origin") not in allowed_origins:
                 return JSONResponse(status_code=403, content={"detail": "Request origin is not allowed"})
             try:
-                if int(request.headers.get("content-length", "0")) > 65536:
+                if int(request.headers.get("content-length", "0")) > (LOGO_MAX_BYTES if LOGO_PATH.match(path) else 65536):
                     return JSONResponse(status_code=413, content={"detail": "Request body is too large"})
             except ValueError:
                 return JSONResponse(status_code=400, content={"detail": "Invalid content length"})
         client_ip = request.client.host if request.client else "unknown"
-        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register") else "faq" if path.endswith("/faq") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
+        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register", "/api/auth/google") else "faq" if path.endswith("/faq") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
         limit = {"auth": 15, "faq": 25, "forum_write": 30, "general": 300}[bucket]
         timestamp = time.monotonic()
         with rate_lock:
@@ -502,9 +641,18 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         except HTTPException:
             return None
 
+    def owned_club_ids(user_id):
+        with store.connect() as conn:
+            return [r[0] for r in conn.execute("SELECT club_id FROM officers WHERE user_id=? ORDER BY club_id", (user_id,))]
+
+    def account(row):
+        """The signed-in user's own view of their account, including the clubs they manage."""
+        return {**public_user(row), "managed_club_ids": owned_club_ids(row["id"])}
+
     def officer(user=Depends(current_user)):
-        if user["role"] not in ("officer", "admin"):
-            raise HTTPException(403, "Officer access is required")
+        # Club manager access comes from owning a club, not from a global role.
+        if user["role"] != "admin" and not owned_club_ids(user["id"]):
+            raise HTTPException(403, "You don't manage any clubs")
         return user
 
     def officer_scope(user, club_id):
@@ -648,7 +796,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         return {"ok":True}
 
     @app.get("/api/clubs")
-    def clubs(q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
+    def clubs(request: Request, q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
+        user = optional_user(request)
         records = store.records("clubs")
         constraints = parse_constraints(q, reference_day())
         records = [club for club in records if (not (campus or constraints["campus"]) or same_campus(club["campus"], campus or constraints["campus"])) and (not category or club["category"].casefold() == category.casefold()) and (beginner is None or club["beginner_friendly"] == beginner) and (not constraints["beginner"] or club["beginner_friendly"]) and (not constraints["free"] or bool(re.search(r"\b(free|none|no (?:dues|fee)|0(?:\.00)?)\b", club["membership_fee"].lower()))) ]
@@ -660,11 +809,11 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             records.sort(key=lambda club: (-scores.get(club["id"],0),club["name"]))
         else:
             records.sort(key=lambda club: (not club["featured"],club["name"]))
-        return records
+        return [public_club(club,user) for club in records]
 
     @app.get("/api/clubs/{club_id}")
-    def club_detail(club_id: str):
-        return store.record("clubs", club_id)
+    def club_detail(club_id: str, request: Request):
+        return public_club(store.record("clubs", club_id), optional_user(request))
 
     @app.get("/api/events")
     def events(q: str = Query(default="", max_length=500), campus: str = "", club_id: str = "", from_date: date | None = None, to_date: date | None = None):
@@ -730,29 +879,80 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         return any_event(event_id)
 
     @app.post("/api/clubs/{club_id}/faq")
-    def faq(club_id: str, body: Question):
-        return answer_faq(store.record("clubs",club_id), body.question)
+    def faq(club_id: str, body: Question, request: Request):
+        # Answers quote the profile verbatim, so they get the same contact redaction.
+        return answer_faq(public_club(store.record("clubs",club_id), optional_user(request)), body.question)
 
     @app.get("/api/auth/me")
     def me(user=Depends(current_user)):
-        return user
+        return {**user, "managed_club_ids": owned_club_ids(user["id"])}
+
+    @app.get("/api/auth/config")
+    def auth_config():
+        # The OAuth client ID is public by design; it only names this site to Google.
+        return {"google_client_id": google_client_id or None, "allowed_domains": email_domains, "password_login": demo_mode}
+
+    @app.post("/api/auth/google")
+    def google_login(body: GoogleCredential, request: Request, response: Response):
+        if not verify_google:
+            raise HTTPException(503, "Google sign-in is not configured on this server")
+        try:
+            claims = verify_google(body.credential)
+        except Exception:
+            raise HTTPException(401, "Google sign-in could not be verified. Please try again.")
+        email = str(claims.get("email", "")).strip().lower()
+        domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+        if claims.get("iss") not in GOOGLE_ISSUERS or not claims.get("sub"):
+            raise HTTPException(401, "Google sign-in could not be verified. Please try again.")
+        # hd is set by Google only for Workspace accounts, so a personal Gmail can't pass.
+        if not claims.get("email_verified") or domain not in email_domains or str(claims.get("hd", "")).lower() != domain:
+            raise HTTPException(403, "Sign in with your Rutgers ScarletMail account (@" + email_domains[0] + ").")
+        name = re.sub(r"\s+", " ", str(claims.get("given_name") or claims.get("name") or email.split("@")[0])).strip()[:80] or "Rutgers student"
+        with store.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE google_sub=?", (claims["sub"],)).fetchone()
+            if not row:
+                row = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+                if row and row["google_sub"] and row["google_sub"] != claims["sub"]:
+                    raise HTTPException(409, "This email is linked to a different Google account")
+                if row:
+                    conn.execute("UPDATE users SET google_sub=? WHERE id=?", (claims["sub"], row["id"]))
+                else:
+                    # No password: these accounts can only sign in through Google.
+                    conn.execute("INSERT INTO users(id,email,password_hash,display_name,role,created_at,google_sub) VALUES (?,?,?,?,?,?,?)", (str(uuid.uuid4()), email, "", name, "student", now_iso(), claims["sub"]))
+                row = conn.execute("SELECT * FROM users WHERE google_sub=?", (claims["sub"],)).fetchone()
+            claim_club_invites(conn, row["id"], row["email"])
+        old_token = request.cookies.get(COOKIE)
+        if old_token:
+            with store.connect() as conn:
+                conn.execute("DELETE FROM sessions WHERE token_hash=?", (hashlib.sha256(old_token.encode()).hexdigest(),))
+        start_session(response, row["id"])
+        return account(row)
+
+    def password_auth_enabled():
+        # Email + password accounts exist only in local demo mode (shared demo logins,
+        # tests). Public deployments sign in exclusively with ScarletMail through Google.
+        if not demo_mode:
+            raise HTTPException(403, "Sign in with your Rutgers ScarletMail Google account")
 
     @app.post("/api/auth/register")
     def register(body: Registration, response: Response):
+        password_auth_enabled()
         if demo_mode and body.email in DEMO_ACCOUNTS:
             raise HTTPException(409,"This email is reserved for a local demo account")
         user_id = str(uuid.uuid4())
         try:
             with store.connect() as conn:
                 conn.execute("INSERT INTO users(id,email,password_hash,display_name,role,created_at) VALUES (?,?,?,?,?,?)", (user_id,body.email,password_hash(body.password),body.display_name,"student",now_iso()))
+                claim_club_invites(conn, user_id, body.email)
                 row = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         except store.IntegrityError:
             raise HTTPException(409, "An account with this email already exists")
         start_session(response,user_id)
-        return public_user(row)
+        return account(row)
 
     @app.post("/api/auth/login")
     def login(body: Credentials, request: Request, response: Response):
+        password_auth_enabled()
         with store.connect() as conn:
             row = conn.execute("SELECT * FROM users WHERE email=?", (body.email,)).fetchone()
         valid = check_password(body.password,row["password_hash"] if row else DUMMY_HASH)
@@ -762,8 +962,10 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         if old_token:
             with store.connect() as conn:
                 conn.execute("DELETE FROM sessions WHERE token_hash=?", (hashlib.sha256(old_token.encode()).hexdigest(),))
+        with store.connect() as conn:
+            claim_club_invites(conn, row["id"], row["email"])
         start_session(response,row["id"])
-        return public_user(row)
+        return account(row)
 
     @app.post("/api/auth/logout")
     def logout(request: Request, response: Response):
@@ -794,7 +996,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 # Column names come exclusively from the validated model.
                 conn.execute("UPDATE users SET " + ",".join(f"{key}=?" for key in updates) + " WHERE id=?", (*updates.values(),user["id"]))
         with store.connect() as conn:
-            return public_user(conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone())
+            row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        return account(row)
 
     @app.get("/api/saved")
     def saved(user=Depends(current_user)):
@@ -855,7 +1058,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         dismissed, followed = set(), set()
         query = ""
         if user:
-            query = " ".join(user["interests"]) + " " + user["goals"]
+            query = " ".join(user["interests"]) + " " + user["goals"] + " " + user["major"]
             with store.connect() as conn:
                 dismissed = {r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=?",(user["id"],))}
                 followed = {r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=?",(user["id"],))}
@@ -873,8 +1076,11 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             best = max(candidates,key=lambda c:(utility(c),c["name"]))
             overlap = [interest for interest in (user["interests"] if user else []) if tokens(interest) & tokens(" ".join(best["interests"]) + " " + best["category"])]
             reasons = []
+            major_match = bool(user and user["major"] and tokens(user["major"]) & tokens(" ".join(best["interests"]) + " " + best["category"] + " " + best["name"] + " " + best["description"]))
             if overlap:
                 reasons.append("Matches your interests in " + ", ".join(overlap[:2]))
+            elif major_match:
+                reasons.append("Connects to your major, " + user["major"])
             elif has_profile and scores.get(best["id"],0) >= 0.045:
                 reasons.append("Related to your interests and goals in the local text model")
             elif has_profile:
@@ -885,10 +1091,54 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 reasons.append("meets on your selected campus")
             if best["beginner_friendly"]:
                 reasons.append("welcomes beginners")
-            selected.append({**best,"score":round(scores.get(best["id"],0),4),"explanation":"; ".join(reasons) + ". Category variety also influences the order."})
+            selected.append({**public_club(best,user),"score":round(scores.get(best["id"],0),4),"explanation":"; ".join(reasons) + ". Category variety also influences the order."})
             categories[best["category"]] += 1
             candidates.remove(best)
         return {"clubs":selected,"method":"Local TF-IDF + LSA similarity, explicit interests and goals, campus preference, and category diversity. Scores are similarities, not probabilities." if has_profile else "Cold start: a varied mix of clubs. Add interests to personalize."}
+
+    graph_state = {"fingerprint": None, "graph": None}
+    graph_lock = threading.Lock()
+
+    def current_graph(clubs):
+        """The club graph for this catalog: memory, else Supabase, else rebuilt and stored."""
+        fingerprint = club_graph.fingerprint(clubs)
+        with graph_lock:
+            if graph_state["fingerprint"] != fingerprint:
+                stored_fingerprint, edges = store.load_graph()
+                if stored_fingerprint != fingerprint:
+                    edges = club_graph.build_edges(clubs)
+                    graph = club_graph.ClubGraph(edges)
+                    store.save_graph(edges, fingerprint, graph.stats())
+                else:
+                    graph = club_graph.ClubGraph(edges)
+                graph_state.update(fingerprint=fingerprint, graph=graph)
+            return graph_state["graph"]
+
+    def cofollow_counts():
+        # Only aggregate pair counts leave the database; nobody's follow list does.
+        with store.connect() as conn:
+            rows = conn.execute("SELECT a.club_id, b.club_id, COUNT(*) FROM follows a JOIN follows b ON a.user_id=b.user_id AND a.club_id<b.club_id GROUP BY a.club_id, b.club_id HAVING COUNT(*)>=?", (club_graph.MIN_COFOLLOW,)).fetchall()
+        return [(r[0], r[1], int(r[2])) for r in rows]
+
+    @app.get("/api/for-you")
+    def for_you(request: Request, limit: int = Query(default=24, ge=1, le=60)):
+        user = optional_user(request)
+        clubs = store.records("clubs")
+        graph = current_graph(clubs)
+        picked, method = [], "cold_start"
+        if user:
+            with store.connect() as conn:
+                follows = [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=?", (user["id"],))]
+                bookmarks = [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=?", (user["id"],))]
+                dismissed = [r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=?", (user["id"],))]
+            profile_text = " ".join([*user["interests"], user["major"], user["goals"]]).strip()
+            text_scores = club_index.scores(clubs, profile_text) if tokens(profile_text) else {}
+            picked, method = club_graph.recommend(graph, clubs, follows=follows, bookmarks=bookmarks, dismissed=dismissed, interests=user["interests"], major=user["major"], text_scores=text_scores, cofollow=cofollow_counts(), limit=limit)
+        notes = {
+            "graph": "Personalized PageRank over the club graph: walks out from clubs you follow or saved and the topics in your interests and major. Passed clubs push their neighbours down.",
+            "cold_start": "Nothing to start from yet. Sign in, pick interests or a major, or follow a few clubs, and For you fills up.",
+        }
+        return {"clubs": [{**public_club(c, user), "score": c["score"], "explanation": c["explanation"], "reasons": c["reasons"]} for c in picked], "method": method, "note": notes[method], "graph": graph.stats()}
 
     @app.post("/api/reports")
     def reports(body: Report,user=Depends(current_user)):
@@ -905,11 +1155,10 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
 
     @app.get("/api/officer/clubs")
     def officer_clubs(user=Depends(officer)):
-        if user["role"] == "admin":
-            return store.records("clubs")
-        with store.connect() as conn:
-            ids = {r[0] for r in conn.execute("SELECT club_id FROM officers WHERE user_id=?",(user["id"],))}
-        return [club for club in store.records("clubs") if club["id"] in ids]
+        ids = set(owned_club_ids(user["id"]))
+        # Admins see every club, with the ones they own listed first.
+        clubs = [club for club in store.records("clubs") if user["role"] == "admin" or club["id"] in ids]
+        return sorted(clubs, key=lambda club: (club["id"] not in ids, club["name"].casefold()))
 
     def persist_event(event, creating=False):
         start = datetime.fromisoformat(event["starts_at"]).astimezone(timezone.utc).isoformat()
@@ -954,6 +1203,9 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         officer_scope(user,club_id)
         updates = body.model_dump(mode="json",exclude_none=True)
         club.update(updates)
+        if club.get("verification") == "unclaimed":
+            # Once its owners edit it, the profile is theirs rather than a copy from The Arc.
+            club["verification"] = "verified"
         # Keep generic factual FAQs consistent with edited structured fields.
         # The resulting passages are stored publicly and then retrieved verbatim.
         # Specialized equipment/safety/other FAQs are preserved.
@@ -982,6 +1234,50 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 event["club_name"] = club["name"]
                 conn.execute("UPDATE events SET payload=? WHERE id=?",(json.dumps(event),row["id"]))
         return club
+
+    def save_club(club):
+        club["updated_at"] = now_iso()
+        with store.connect() as conn:
+            conn.execute("UPDATE clubs SET payload=? WHERE id=?",(json.dumps(club),club["id"]))
+        return club
+
+    @app.put("/api/officer/clubs/{club_id}/logo")
+    async def upload_logo(club_id: str, request: Request, user=Depends(officer)):
+        club = store.record("clubs",club_id)
+        officer_scope(user,club_id)
+        data = await request.body()
+        if len(data) > LOGO_MAX_BYTES:
+            raise HTTPException(413,"Logos can be at most 1 MB")
+        content_type = logo_type(data)
+        if not content_type:
+            raise HTTPException(415,"Upload a PNG, JPEG, WebP, or GIF image")
+        stamp = now_iso()
+        with store.connect() as conn:
+            conn.execute("INSERT INTO club_logos VALUES (?,?,?,?) ON CONFLICT(club_id) DO UPDATE SET content_type=excluded.content_type,data=excluded.data,updated_at=excluded.updated_at",(club_id,content_type,base64.b64encode(data).decode(),stamp))
+        # The version in the URL lets browsers cache a logo until it changes.
+        club["logo_url"] = f"/api/clubs/{club_id}/logo?v={int(datetime.fromisoformat(stamp).timestamp())}"
+        return save_club(club)
+
+    @app.delete("/api/officer/clubs/{club_id}/logo")
+    def delete_logo(club_id: str, user=Depends(officer)):
+        club = store.record("clubs",club_id)
+        officer_scope(user,club_id)
+        with store.connect() as conn:
+            conn.execute("DELETE FROM club_logos WHERE club_id=?",(club_id,))
+        club.pop("logo_url",None)
+        return save_club(club)
+
+    @app.get("/api/clubs/{club_id}/logo")
+    def club_logo(club_id: str):
+        with store.connect() as conn:
+            row = conn.execute("SELECT content_type,data FROM club_logos WHERE club_id=?",(club_id,)).fetchone()
+        if not row:
+            raise HTTPException(404,"This club has no logo")
+        return Response(base64.b64decode(row["data"]), media_type=row["content_type"], headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            # Served as a plain image only: nothing in it may run if opened directly.
+            "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+        })
 
     @app.get("/api/officer/analytics")
     def analytics(user=Depends(officer)):

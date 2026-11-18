@@ -20,19 +20,19 @@ python3 scripts/dev.py
 
 Open **http://127.0.0.1:3000**. Interactive API documentation is at **http://127.0.0.1:8000/docs**. On Windows, create the environment with `py -m venv .venv` and use `.venv\Scripts\python` for Python commands. The development launcher starts both servers and stops them with Ctrl+C. This workspace also has an ignored standard Node runtime in `.tools/node`; the launcher detects it when Node is not on PATH. Set `NODE_BINARY` to select another executable.
 
-Browse and search as a guest, or register with a display name, email, and password of at least 12 characters. Interests and campus preferences are optional; onboarding can be skipped.
+Browse and search as a guest. Students sign in with their Rutgers **ScarletMail Google account** (`@scarletmail.rutgers.edu`; see [Signing in with ScarletMail](#signing-in-with-scarletmail)). Signing in reveals club contact details (emails and Discord invites are withheld from guests) and enables follows, saves, and RSVPs. The first sign-in asks for a major, interests, and home campus; all are optional and editable in Profile.
 
 | Local demo account | Password | Access |
 | --- | --- | --- |
 | `student@demo.local` | `StudentDemo2026!` | Private preferences, follows, saves, RSVP intentions |
 | `officer@demo.local` | `OfficerDemo2026!` | Assigned demo organization content and event management |
 
-Demo accounts are available only in `DEMO_MODE=1`; the API restricts demo hosts to local addresses. A registered student cannot grant themselves officer access. These public fixture credentials must not be used for a real pilot.
+Demo accounts are available only in `DEMO_MODE=1`, where email + password sign-in exists for them (and for tests). With `DEMO_MODE=0`, password sign-in and registration are switched off and Google is the only way in. A student cannot grant themselves officer access. These public fixture credentials must not be used for a real pilot.
 
 ## What's implemented
 
 - Responsive student home, directory, recommendations, swipe discovery, events/calendar, saved items, and profile flows.
-- Persistent registration/login/logout, optional editable interests, private saved items, and account deletion.
+- Sign in with Google restricted to ScarletMail, first-run major/interests/campus onboarding, private saved items, and account deletion. Club contacts are visible only when signed in.
 - Local hybrid keyword and dense LSA embedding search with deterministic campus/date/free/beginner constraints, and category-diverse recommendations.
 - Club profiles with source and freshness information; extractive FAQ retrieval with evidence and missing-answer abstention.
 - Event bookmarks, private interested/going intentions, calendar downloads, and cancelled-event handling.
@@ -54,7 +54,43 @@ The frontend uses Next.js App Router, React and TypeScript; FastAPI owns the API
 
 Supabase is used as a Postgres database only: the FastAPI backend keeps its own accounts and authorization, and every table has row-level security enabled with no policies, so Supabase's public Data API cannot read them. The app uses **LSA rather than a pretrained embedding service**, and **extractive FAQ retrieval rather than generative RAG**. Those choices make the first build runnable without credentials and keep its behavior inspectable. They have explicit quality and deployment limits. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API_CONTRACT.md), and [data disclosure](data/README.md).
 
-Real officer verification, email verification/recovery, Supabase Auth, production infrastructure, human research, and measured student impact remain to be completed. Secondary social matching, mobile apps, notification delivery, and flyer extraction are outside this build. This is a working local prototype, not a completed campus launch.
+Real officer verification, production infrastructure, human research, and measured student impact remain to be completed. Secondary social matching, mobile apps, notification delivery, and flyer extraction are outside this build. This is a working local prototype, not a completed campus launch.
+
+## Club owners and the club manager
+
+Students who own a club see a **Club manager** tab (and a "Clubs you manage" list in Profile). There they can edit everything on their club's profile: name, short name, category, campus, tags, description, about text, meeting time and place, fee, eligibility, contact email, website, Instagram, Discord, accent color, and the published Q&A, and they can publish events. Owners can also upload a **logo** (PNG, JPEG, WebP, or GIF, up to 1 MB; SVG is refused because it can carry scripts). The server checks the file's actual bytes, stores it in the `club_logos` table, and serves it at `/api/clubs/{id}/logo`; it replaces the colored category tile on the club's page, cards, and discovery view. To bulk-load logos, list `{name, profile_url, image_url}` entries in a JSON file and run `scripts/import_club_logos.py <file> --dry-run`, then without `--dry-run`. It matches clubs by profile URL or name, downscales images to 320 px WebP when Pillow is installed (`pip install pillow`), and never overwrites a logo an owner uploaded unless you pass `--replace`. Ownership is checked on the server for every change; owning one club never grants access to another. Once owners edit an imported club, its profile is labeled as maintained by the club's owners.
+
+Ownership is granted by site admins from the command line (there is no self-service claim yet):
+
+```bash
+.venv\Scripts\python scripts\manage_clubs.py add data\clubs\amogus-club.json
+.venv\Scripts\python scripts\manage_clubs.py grant amogus-club sm3584 ap2999 amw408 akn74
+.venv\Scripts\python scripts\manage_clubs.py revoke amogus-club ap2999
+.venv\Scripts\python scripts\manage_clubs.py owners amogus-club
+```
+
+A bare NetID means `NetID@scarletmail.rutgers.edu`. Owners who haven't signed in yet are stored as pending (`club_owner_invites`) and get access at their first ScarletMail sign-in.
+
+## Discover modes and the club graph
+
+Discover's one-at-a-time view has a switch with a short explanation under it:
+
+- **Discover** shows every club in a random order (reshuffle any time). Interests and follows are not used.
+- **For you** ranks clubs with **personalized PageRank over a club graph** stored in Supabase (`backend/graph.py`, endpoint `GET /api/for-you`). Each card says why it was picked, for example "Similar to Chess Club, which you follow".
+
+The graph's nodes are clubs, tags, and categories. Stored edges (`graph_edges`) link clubs to their tags and category, and each club to its most similar clubs by description (TF-IDF + LSA cosine, with campus boilerplate words ignored). The graph is rebuilt and re-stored automatically the first time it's needed after club content changes (for example an owner editing tags); `scripts/build_club_graph.py` builds it ahead of time. Live edges come from existing tables at request time: what a student follows, saves, or passes, and "followed together" links between clubs that **at least three people** follow, so no individual's follows can be inferred. A recommendation walk restarts at the student's followed and saved clubs, the tags matching their interests and major, and the clubs whose text best matches their profile; passed clubs push their neighbours down, and a soft penalty keeps one category from filling the stack. With nothing to start from (guests, empty profiles), For you asks the student to sign in, add interests, or follow a club.
+
+## Signing in with ScarletMail
+
+The backend verifies Google's signed ID token and accepts only verified accounts on the ScarletMail Workspace domain (the token's `hd` claim must be `scarletmail.rutgers.edu`, so personal Gmail addresses are rejected). Set up a Google OAuth client once:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project.
+2. Open **Google Auth Platform** (APIs & Services > OAuth consent screen). Choose **External**, name the app, and add a support email. The default `openid`, `email`, and `profile` scopes are all the app needs. **Publish** the app (status *In production*); while it is in *Testing*, only listed test users can sign in. Apps that request only these basic scopes do not need Google's verification review.
+3. Under **Clients** (Credentials), create an **OAuth client ID** of type **Web application**. Add **Authorized JavaScript origins**: `http://localhost`, `http://localhost:3000`, and later your public `https://` address. No redirect URI is needed.
+4. Put the client ID in `.env` as `GOOGLE_CLIENT_ID=...` and restart. The ID is public; it is not a secret.
+5. Open **http://localhost:3000** (Google does not accept `127.0.0.1` as an origin) and choose **Sign in**.
+
+Rutgers' Google Workspace administrators control whether students may use third-party sign-in; if Rutgers blocks it, Google shows an error and the sign-in fails. `ALLOWED_EMAIL_DOMAINS` (comma-separated) changes the accepted domains. Without a client ID, only the local demo accounts can sign in.
 
 ## Using Supabase
 

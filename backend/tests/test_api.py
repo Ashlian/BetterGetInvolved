@@ -234,7 +234,11 @@ def test_demo_credentials_removed_when_demo_disabled(api,tmp_path):
     seed.write_text('{"clubs":[],"events":[]}')
     production_app = create_app(db_path=db,seed_path=seed,demo_mode=False)
     with TestClient(production_app,headers=ORIGIN) as production:
-        assert production.post("/api/auth/login",json={"email":"officer@demo.local","password":"OfficerDemo2026!"}).status_code == 401
+        # Outside demo mode passwords are switched off entirely (ScarletMail Google sign-in only).
+        assert production.post("/api/auth/login",json={"email":"officer@demo.local","password":"OfficerDemo2026!"}).status_code == 403
+        assert production.post("/api/auth/register",json={"email":"x@scarletmail.rutgers.edu","password":"Long secret 2026!","display_name":"X"}).status_code == 403
+    with sqlite3.connect(db) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM users WHERE id IN ('demo-student','demo-officer')").fetchone()[0] == 0
 
 
 def test_profile_faq_facts_follow_officer_edits(api):
