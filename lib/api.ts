@@ -13,6 +13,10 @@ export type Recommendation = Club & {score: number; explanation: string; reasons
 /** Discover's "For you" mode: personalized PageRank over the club graph. */
 export type ForYou = {clubs: Recommendation[]; method: 'graph' | 'cold_start'; note: string; graph: Record<string, number>};
 export type DiscoverMode = 'random' | 'foryou';
+/** How the search box read a query: topics from the club knowledge graph plus hard filters. */
+export type SearchUnderstanding = {topics: string[]; terms: string[]; campus: string; beginner: boolean; free: boolean};
+/** Natural-language club search. Clubs carry score/explanation when the query had something to rank by. */
+export type ClubSearchResult = {clubs: (Club | Recommendation)[]; understood: SearchUnderstanding; method: string};
 export type CampusEvent = {
   id: string; club_id: string; club_name: string; title: string; description: string; starts_at: string;
   ends_at: string | null; campus: string; location: string; category: string; cost: number | null;

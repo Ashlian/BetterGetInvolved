@@ -121,3 +121,48 @@ def test_followed_together_needs_three_people(api):
     client.post("/api/clubs/robotics/follow")
     poetry = next(c for c in client.get("/api/for-you").json()["clubs"] if c["id"] == "poetry")
     assert poetry["explanation"] == "People who follow Robotics Team often follow this too"
+
+
+# Natural-language search over the same graph.
+
+def search(client, q, **params):
+    return client.get("/api/search/clubs", params={"q": q, **params}).json()
+
+
+def test_topics_ignore_false_friends_and_read_idioms():
+    from backend import topics
+    assert topics.match("A safe space with a code of conduct, in New Brunswick, on Cook campus") == {}
+    # Longest phrase wins: "board games" is one phrase, not also the generic "games".
+    assert set(topics.match("I want to make friends who like board games")) == {"social", "board-games"}
+    assert "caribbean" in topics.match("West Indian Student Organization") and "south-asian" not in topics.match("West Indian Student Organization")
+    searcher = club_graph.ClubSearch(club_graph.ClubGraph(club_graph.build_edges(CLUBS)), CLUBS)
+    assert searcher.understand("I want to start a business") == (["entrepreneurship"], [])
+
+
+def test_search_understands_plain_language(api):
+    client, _ = api
+    body = search(client, "somewhere to sing with other people")
+    assert body["clubs"][0]["id"] == "choir" and body["clubs"][0]["explanation"] == "About Singing and a cappella"
+    assert "Singing and a cappella" in body["understood"]["topics"]
+    # Words the club never uses still reach it through the topic layer.
+    robots = search(client, "I like building robots")
+    assert robots["clubs"][0]["id"] == "robotics"
+    assert {c["id"] for c in search(client, "tabletop strategy")["clubs"][:3]} == {"chess", "boardgames", "go"}
+
+
+def test_search_names_first_then_related_clubs(api):
+    client, _ = api
+    ranked = search(client, "chess")["clubs"]
+    assert ranked[0]["id"] == "chess" and ranked[0]["explanation"] == "Name matches your search"
+    related = {c["id"]: c["explanation"] for c in ranked[1:]}
+    assert {"boardgames", "go"} <= set(related) and "choir" not in related and "poetry" not in related
+
+
+def test_search_keeps_hard_filters_and_old_endpoint(api):
+    client, _ = api
+    # Every seeded club is on Busch; asking for Livingston must not fall back to other campuses.
+    assert search(client, "chess on Livingston")["clubs"] == []
+    body = search(client, "free beginner")
+    assert body["understood"]["free"] and body["understood"]["beginner"] and body["understood"]["topics"] == []
+    legacy = client.get("/api/clubs", params={"q": "poems and open mics"}).json()
+    assert legacy[0]["id"] == "poetry" and legacy[0]["explanation"]

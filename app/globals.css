@@ -159,6 +159,10 @@ section+section{margin-top:36px}
 .filter-bar .search-input{flex:1 1 300px}
 .result-count{font-size:var(--t-subhead);font-weight:600;margin-bottom:14px}
 .result-count span{font-weight:400;color:var(--label-2)}
+.search-reading{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px 0 16px;font-size:var(--t-footnote);color:var(--label-2)}
+.search-reading svg{color:var(--accent)}
+.reading-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:12px;background:var(--accent-soft);color:var(--label);font-weight:500}
+.reading-chip.reading-filter{background:var(--fill)}
 .is-loading{opacity:.55;transition:opacity .2s}
 
 /* Campus marks: a colored stop dot plus the campus name. */

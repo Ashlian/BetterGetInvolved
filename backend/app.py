@@ -54,6 +54,10 @@ CLUB_TEXT_FIELDS = ("description", "mission", "meeting_schedule", "location", "e
 
 
 LOGO_MAX_BYTES = 1024 * 1024
+# The club catalog is read on every list, search, and For you request; over a remote database
+# that is most of the response time. Edits made through the API clear the copy at once; scripts
+# that write to the database directly show up within this many seconds.
+CATALOG_CACHE_SECONDS = 30
 LOGO_PATH = re.compile(r"^/api/officer/clubs/[^/]+/logo$")
 # SVG is deliberately excluded: it can carry scripts.
 LOGO_SIGNATURES = (
@@ -379,6 +383,8 @@ class Store:
         # A plain path keeps the original SQLite behavior.
         self.db = database if hasattr(database, "connect") else SQLite(database)
         self.IntegrityError = self.db.IntegrityError
+        self.catalog = None  # (fetched at, raw club payloads)
+        self.catalog_lock = threading.Lock()
 
     def connect(self):
         return self.db.connect()
@@ -495,8 +501,20 @@ class Store:
 
     def records(self, table):
         assert table in ("clubs", "events")
+        if table == "clubs":
+            with self.catalog_lock:
+                if not self.catalog or time.monotonic() - self.catalog[0] > CATALOG_CACHE_SECONDS:
+                    with self.connect() as conn:
+                        self.catalog = (time.monotonic(), [row[0] for row in conn.execute("SELECT payload FROM clubs ORDER BY id")])
+                payloads = self.catalog[1]
+            # Parse per call so no caller can change the shared copy.
+            return [json.loads(payload) for payload in payloads]
         with self.connect() as conn:
             return [json.loads(row[0]) for row in conn.execute(f"SELECT payload FROM {table} ORDER BY id")]
+
+    def forget_catalog(self):
+        with self.catalog_lock:
+            self.catalog = None
 
     def record(self, table, item_id):
         assert table in ("clubs", "events")
@@ -795,21 +813,34 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             conn.execute("DELETE FROM forum_comments WHERE id=? AND post_id=?",(comment_id,post_id))
         return {"ok":True}
 
+    def search_clubs(q, campus, category, beginner):
+        """Hard filters (campus, category, beginner, free) first, then the knowledge-graph search
+        ranks what is left. Returns (clubs with score/explanation when searched, what was understood)."""
+        all_clubs = store.records("clubs")
+        constraints = parse_constraints(q, reference_day())
+        records = [club for club in all_clubs if (not (campus or constraints["campus"]) or same_campus(club["campus"], campus or constraints["campus"])) and (not category or club["category"].casefold() == category.casefold()) and (beginner is None or club["beginner_friendly"] == beginner) and (not constraints["beginner"] or club["beginner_friendly"]) and (not constraints["free"] or bool(re.search(r"\b(free|none|no (?:dues|fee)|0(?:\.00)?)\b", club["membership_fee"].lower()))) ]
+        understood = {"topics": [], "terms": [], "campus": campus or constraints["campus"] or "", "beginner": bool(beginner or constraints["beginner"]), "free": constraints["free"]}
+        searcher = current_search(all_clubs)
+        ranked = searcher.run(constraints["query"], allowed=[club["id"] for club in records])
+        if ranked is None:
+            records.sort(key=lambda club: (not club["featured"], club["name"]))
+            return records, understood
+        understood.update(searcher.interpretation(constraints["query"]))
+        return [{**club, "score": score, "explanation": reason} for club, score, reason in ranked], understood
+
     @app.get("/api/clubs")
     def clubs(request: Request, q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
         user = optional_user(request)
-        records = store.records("clubs")
-        constraints = parse_constraints(q, reference_day())
-        records = [club for club in records if (not (campus or constraints["campus"]) or same_campus(club["campus"], campus or constraints["campus"])) and (not category or club["category"].casefold() == category.casefold()) and (beginner is None or club["beginner_friendly"] == beginner) and (not constraints["beginner"] or club["beginner_friendly"]) and (not constraints["free"] or bool(re.search(r"\b(free|none|no (?:dues|fee)|0(?:\.00)?)\b", club["membership_fee"].lower()))) ]
-        topic = constraints["query"]
-        if tokens(topic):
-            # Fit on the full public catalog; hard filters never alter embeddings.
-            scores = club_index.scores(store.records("clubs"), topic)
-            records = [club for club in records if scores.get(club["id"], 0) >= 0.045]
-            records.sort(key=lambda club: (-scores.get(club["id"],0),club["name"]))
-        else:
-            records.sort(key=lambda club: (not club["featured"],club["name"]))
-        return [public_club(club,user) for club in records]
+        records, _ = search_clubs(q, campus, category, beginner)
+        return [{**public_club(club, user), **({"score": club["score"], "explanation": club["explanation"]} if "score" in club else {})} for club in records]
+
+    @app.get("/api/search/clubs")
+    def club_search(request: Request, q: str = Query(default="", max_length=500), campus: str = "", category: str = "", beginner: bool | None = None):
+        """Natural-language search: the ranked clubs, why each matched, and how the query was read."""
+        user = optional_user(request)
+        records, understood = search_clubs(q, campus, category, beginner)
+        return {"clubs": [{**public_club(club, user), **({"score": club["score"], "explanation": club["explanation"]} if "score" in club else {})} for club in records],
+                "understood": understood, "method": "Knowledge-graph search: campus topics, matching club text, and a personalized PageRank walk over related clubs."}
 
     @app.get("/api/clubs/{club_id}")
     def club_detail(club_id: str, request: Request):
@@ -1096,8 +1127,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             candidates.remove(best)
         return {"clubs":selected,"method":"Local TF-IDF + LSA similarity, explicit interests and goals, campus preference, and category diversity. Scores are similarities, not probabilities." if has_profile else "Cold start: a varied mix of clubs. Add interests to personalize."}
 
-    graph_state = {"fingerprint": None, "graph": None}
-    graph_lock = threading.Lock()
+    graph_state = {"fingerprint": None, "graph": None, "search": None}
+    graph_lock = threading.RLock()
 
     def current_graph(clubs):
         """The club graph for this catalog: memory, else Supabase, else rebuilt and stored."""
@@ -1111,8 +1142,16 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                     store.save_graph(edges, fingerprint, graph.stats())
                 else:
                     graph = club_graph.ClubGraph(edges)
-                graph_state.update(fingerprint=fingerprint, graph=graph)
+                graph_state.update(fingerprint=fingerprint, graph=graph, search=None)
             return graph_state["graph"]
+
+    def current_search(clubs):
+        """The search index for this catalog, rebuilt alongside the graph."""
+        with graph_lock:
+            graph = current_graph(clubs)
+            if graph_state["search"] is None:
+                graph_state["search"] = club_graph.ClubSearch(graph, clubs)
+            return graph_state["search"]
 
     def cofollow_counts():
         # Only aggregate pair counts leave the database; nobody's follow list does.
@@ -1233,12 +1272,14 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 event = json.loads(row["payload"])
                 event["club_name"] = club["name"]
                 conn.execute("UPDATE events SET payload=? WHERE id=?",(json.dumps(event),row["id"]))
+        store.forget_catalog()
         return club
 
     def save_club(club):
         club["updated_at"] = now_iso()
         with store.connect() as conn:
             conn.execute("UPDATE clubs SET payload=? WHERE id=?",(json.dumps(club),club["id"]))
+        store.forget_catalog()
         return club
 
     @app.put("/api/officer/clubs/{club_id}/logo")

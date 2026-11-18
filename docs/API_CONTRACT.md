@@ -3,7 +3,8 @@
 All endpoints start `/api`. A Next.js route handler forwards to FastAPI on 127.0.0.1:8000 (or runtime `API_URL`). JSON, snake_case fields. Use same-origin HTTP-only session cookies; frontend fetch includes credentials. Responses below describe exact public shapes. Errors use `detail` string. IDs are strings.
 
 - GET /health -> {status, data_mode, embedding_model}
-- GET /clubs?q=&campus=&category=&beginner= -> Club[] (search handles natural language constraints)
+- GET /clubs?q=&campus=&category=&beginner= -> Club[] (same ranking as /search/clubs; with a query, each club also has score and explanation)
+- GET /search/clubs?q=&campus=&category=&beginner= -> {clubs: (Club & {score?, explanation?})[], understood: {topics: string[], terms: string[], campus: string, beginner: boolean, free: boolean}, method: string} (natural-language search over the club knowledge graph)
 - GET /clubs/{id} -> Club
 - GET /recommendations?limit=8 -> {clubs: RecommendedClub[], method: string}
 - GET /events?q=&campus=&club_id=&from_date=&to_date= -> Event[]
