@@ -110,17 +110,52 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const shuffledClubs = useMemo(() => seededShuffle(clubs, shuffleSeed), [clubs, shuffleSeed]);
   const discoverClubs = (discoverMode === 'foryou' ? forYou?.clubs ?? [] : shuffledClubs).filter(c => !saved.club_ids.includes(c.id) && !saved.dismissed_ids.includes(c.id) && !(saved.maybe_later_ids || []).includes(c.id) && !sessionSkipped.includes(c.id));
   const currentDiscover = discoverClubs[discoverIndex % (discoverClubs.length || 1)];
+  const discoverCard = useRef<HTMLElement>(null);
+  const swipeInProgress = useRef(false);
+  const [swiping, setSwiping] = useState(false);
+
   async function decide(action: 'interested' | 'dismiss' | 'later') {
-    if (!currentDiscover || busy) return;
-    if (action === 'interested') {if (!requireUser()) return; await follow(currentDiscover); return;}
+    if (!currentDiscover || busy || swipeInProgress.current) return;
     if (action === 'later') {await bookmark(currentDiscover); return;}
-    if (!user) {setSessionSkipped(s => [...s, currentDiscover.id]); return;}
-    setBusy(true);
-    try {const result = await post<{dismissed: boolean}>(`/clubs/${currentDiscover.id}/dismiss`); setSaved(s => ({...s, dismissed_ids: result.dismissed ? [...s.dismissed_ids, currentDiscover.id] : s.dismissed_ids.filter(id => id !== currentDiscover.id)})); notify('Passed. The club stays in the directory.');}
-    catch (e) {notify((e as Error).message, true);} finally {setBusy(false);}
+
+    const card = discoverCard.current;
+    let animation: Animation | undefined;
+    swipeInProgress.current = true;
+    setSwiping(true);
+    try {
+      if (card?.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const direction = action === 'dismiss' ? -1 : 1;
+        animation = card.animate([
+          {transform: 'translateX(0) rotate(0)', opacity: 1},
+          {transform: `translateX(${direction * 65}%) rotate(${direction * 13}deg)`, opacity: 0},
+        ], {duration: 240, easing: 'ease-in', fill: 'forwards'});
+        await animation.finished.catch(() => undefined);
+        if (discoverCard.current !== card) return;
+      }
+      if (action === 'interested') {
+        await follow(currentDiscover);
+      } else if (!user) {
+        setSessionSkipped(s => [...s, currentDiscover.id]);
+      } else {
+        setBusy(true);
+        try {
+          const result = await post<{dismissed: boolean}>(`/clubs/${currentDiscover.id}/dismiss`);
+          setSaved(s => ({...s, dismissed_ids: result.dismissed ? [...s.dismissed_ids, currentDiscover.id] : s.dismissed_ids.filter(id => id !== currentDiscover.id)}));
+          notify('Passed. The club stays in the directory.');
+        } finally {
+          setBusy(false);
+        }
+      }
+    } catch (e) {
+      notify((e as Error).message, true);
+    } finally {
+      animation?.cancel();
+      swipeInProgress.current = false;
+      setSwiping(false);
+    }
   }
   async function resetPasses() {
-    if (busy) return; setBusy(true);
+    if (busy || swipeInProgress.current) return; setBusy(true);
     try {for (const id of saved.dismissed_ids) await post(`/clubs/${id}/dismiss`); setSaved(s => ({...s, dismissed_ids: []})); setSessionSkipped([]); setDiscoverIndex(0); notify('Passed clubs are back in Discover.');}
     catch (e) {notify((e as Error).message, true); if (user) void refreshSaved();} finally {setBusy(false);}
   }
@@ -222,9 +257,9 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
             <p className="result-count" role="status">{searching ? 'Searching…' : `${searchClubs.length} ${searchClubs.length === 1 ? 'club' : 'clubs'}`}{searchClubs.length > 0 && searchClubs.every(c => c.verification === 'demo') && <span> · All are demo organizations</span>}</p>{query.trim() && !searching && understood && <SearchReading understood={understood}/>}{searchError && <p className="form-error" role="alert">{searchError}</p>}
             <div className={`club-grid ${searching ? 'is-loading' : ''}`} aria-busy={searching}>{searchClubs.map(club => <ClubCard key={club.id} club={club} following={saved.club_ids.includes(club.id)} onOpen={() => setClubDetail(club)} onFollow={() => void follow(club)}/>)}</div>
             {!searching && !searchClubs.length && !searchError && <div className="surface empty-state"><Search size={28}/><h3>No clubs match</h3><p>Try a broader search, or clear the filters.</p><button className="button button-secondary" onClick={() => {setQuery(''); setCampus(''); setCategory(''); setBeginner(false);}}>Clear filters</button></div>}</>
-          : <div className="discovery-layout"><div className="discovery-stage"><ModeSwitch mode={discoverMode} onChange={setDiscoverMode}/>{discoverMode === 'foryou' && forYouLoading && !forYou ? <div className="loading-state">Finding clubs for you…</div> : discoverMode === 'foryou' && forYou?.method === 'cold_start' ? <div className="surface empty-state"><Sparkles size={34}/><h2>{user ? 'Tell us what you like' : 'Sign in for picks made for you'}</h2><p>{user ? 'For you starts from your interests, your major, and clubs you follow or save. Add some, or follow a club in Discover mode, and this fills up.' : 'For you uses your interests, major, and the clubs you follow. Meanwhile, Discover mode shows clubs at random.'}</p>{user ? <button className="button button-primary" onClick={() => setOnboarding(true)}><Settings2 size={16}/>Choose interests and major</button> : <button className="button button-primary" onClick={() => setAuthOpen(true)}><LogIn size={16}/>Sign in with ScarletMail</button>}<button className="text-button" onClick={() => setDiscoverMode('random')}><Shuffle size={15}/>Switch to Discover mode</button></div> : currentDiscover ? <article className="discovery-card surface" style={{'--club': currentDiscover.color} as React.CSSProperties}><div className="discovery-cover"><ClubArt category={currentDiscover.category} color={currentDiscover.color} logo={currentDiscover.logo_url} size="large"/><button className="icon-button discovery-detail" aria-label="View club details" onClick={() => setClubDetail(currentDiscover)}><ArrowUpRight size={20}/></button></div><div className="discovery-copy"><span className="category-label">{currentDiscover.category}</span><h2>{cleanName(currentDiscover.name)}</h2><p>{currentDiscover.description}</p><div className="tag-list"><CampusMark campus={currentDiscover.campus}/>{currentDiscover.beginner_friendly && <span className="meta-note"><Check size={14}/>Beginners welcome</span>}<span className="meta-note">{currentDiscover.membership_fee}</span></div>{'explanation' in currentDiscover && <p className="recommendation-reason"><Sparkles size={14}/><span><strong>Why this club: </strong>{String(currentDiscover.explanation)}</span></p>}</div></article>
+          : <div className="discovery-layout"><div className="discovery-stage"><ModeSwitch mode={discoverMode} onChange={setDiscoverMode}/>{discoverMode === 'foryou' && forYouLoading && !forYou ? <div className="loading-state">Finding clubs for you…</div> : discoverMode === 'foryou' && forYou?.method === 'cold_start' ? <div className="surface empty-state"><Sparkles size={34}/><h2>{user ? 'Tell us what you like' : 'Sign in for picks made for you'}</h2><p>{user ? 'For you starts from your interests, your major, and clubs you follow or save. Add some, or follow a club in Discover mode, and this fills up.' : 'For you uses your interests, major, and the clubs you follow. Meanwhile, Discover mode shows clubs at random.'}</p>{user ? <button className="button button-primary" onClick={() => setOnboarding(true)}><Settings2 size={16}/>Choose interests and major</button> : <button className="button button-primary" onClick={() => setAuthOpen(true)}><LogIn size={16}/>Sign in with ScarletMail</button>}<button className="text-button" onClick={() => setDiscoverMode('random')}><Shuffle size={15}/>Switch to Discover mode</button></div> : currentDiscover ? <article key={currentDiscover.id} ref={discoverCard} className="discovery-card surface" style={{'--club': currentDiscover.color} as React.CSSProperties}><div className="discovery-cover"><ClubArt category={currentDiscover.category} color={currentDiscover.color} logo={currentDiscover.logo_url} size="large"/><button className="icon-button discovery-detail" aria-label="View club details" onClick={() => setClubDetail(currentDiscover)}><ArrowUpRight size={20}/></button></div><div className="discovery-copy"><span className="category-label">{currentDiscover.category}</span><h2>{cleanName(currentDiscover.name)}</h2><p>{currentDiscover.description}</p><div className="tag-list"><CampusMark campus={currentDiscover.campus}/>{currentDiscover.beginner_friendly && <span className="meta-note"><Check size={14}/>Beginners welcome</span>}<span className="meta-note">{currentDiscover.membership_fee}</span></div>{'explanation' in currentDiscover && <p className="recommendation-reason"><Sparkles size={14}/><span><strong>Why this club: </strong>{String(currentDiscover.explanation)}</span></p>}</div></article>
             : <div className="surface empty-state"><CheckCheck size={34}/><h2>You’ve seen every suggestion</h2><p>Followed and saved clubs are in Saved. The full directory has every club.</p><button className="button button-primary" onClick={() => setDirectory(true)}>Browse all clubs</button>{discoverMode === 'foryou' && <button className="text-button" onClick={() => setDiscoverMode('random')}><Shuffle size={15}/>Try Discover mode</button>}{(saved.dismissed_ids.length > 0 || sessionSkipped.length > 0) && <button className="text-button" onClick={() => void resetPasses()}>Show passed clubs again</button>}</div>}
-            {currentDiscover && <><div className="discovery-actions"><button className="discovery-action action-pass" onClick={() => void decide('dismiss')} disabled={busy}><span><X size={26}/></span>Pass<kbd aria-hidden="true">←</kbd></button><button className="discovery-action action-later" onClick={() => void decide('later')} disabled={busy}><span><Bookmark size={23}/></span>Later<kbd aria-hidden="true">↓</kbd></button><button className="discovery-action action-interested" onClick={() => void decide('interested')} disabled={busy}><span><Heart size={26} fill="currentColor"/></span>Follow<kbd aria-hidden="true">→</kbd></button></div><p className="discovery-count">{discoverClubs.length} clubs left · Passing never hides a club from the directory</p></>}
+            {currentDiscover && <><div className="discovery-actions"><button className="discovery-action action-pass" onClick={() => void decide('dismiss')} disabled={busy || swiping}><span><X size={26}/></span>Pass<kbd aria-hidden="true">←</kbd></button><button className="discovery-action action-later" onClick={() => void decide('later')} disabled={busy || swiping}><span><Bookmark size={23}/></span>Later<kbd aria-hidden="true">↓</kbd></button><button className="discovery-action action-interested" onClick={() => void decide('interested')} disabled={busy || swiping}><span><Heart size={26} fill="currentColor"/></span>Follow<kbd aria-hidden="true">→</kbd></button></div><p className="discovery-count">{discoverClubs.length} clubs left · Passing never hides a club from the directory</p></>}
           </div><aside className="discovery-aside surface"><h3>{discoverMode === 'foryou' ? 'How For you works' : 'How Discover works'}</h3>{discoverMode === 'foryou' ? <><p>Clubs are linked in a graph by shared tags, categories, and similar descriptions, and by clubs that several people follow together. For you starts at the clubs you follow or save and the topics in your interests and major, then follows those links. Passing a club also lowers similar ones.</p><p className="fine-print">It suggests; it doesn’t predict who you are or where you belong.{forYou?.graph?.edges ? ` The graph has ${forYou.graph.edges.toLocaleString()} links between ${forYou.graph.nodes.toLocaleString()} clubs and topics.` : ''}</p></> : <><p>Clubs appear in random order, so you can stumble onto something you’d never search for. Your interests and follows aren’t used here.</p><button className="text-button" onClick={() => {setShuffleSeed(Math.floor(Math.random() * 2 ** 31)); setDiscoverIndex(0);}}><Shuffle size={15}/>Shuffle again</button></>}<p>Use the arrow keys to pass, keep for later, or follow.</p><button className="text-button" onClick={() => user ? setOnboarding(true) : setAuthOpen(true)}><Settings2 size={15}/>Change interests</button>{(saved.dismissed_ids.length > 0 || sessionSkipped.length > 0) && <button className="text-button" onClick={() => void resetPasses()}><ArrowLeft size={15}/>Show passed clubs again</button>}</aside></div>}
         </>}
 
