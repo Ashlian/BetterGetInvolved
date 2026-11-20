@@ -102,11 +102,6 @@
   cursor: pointer;
 }
 
-.forum-sort option {
-  color: #1d1d1f;
-  background: #fff;
-}
-
 .forum-feed {
   display: flex;
   flex-direction: column;

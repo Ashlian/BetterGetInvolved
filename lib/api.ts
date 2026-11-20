@@ -9,7 +9,7 @@ export type Club = {
   /** Uploaded by the club's owners; versioned so it can be cached until replaced. */
   logo_url?: string;
 };
-export type Recommendation = Club & {score: number; explanation: string; reasons?: string[]};
+export type Recommendation = Club & {score: number; explanation: string; reasons?: string[]; /** The student's interests this club links to in the graph. */ tags?: string[]};
 /** Discover's "For you" mode: personalized PageRank over the club graph. */
 export type ForYou = {clubs: Recommendation[]; method: 'graph' | 'cold_start'; note: string; graph: Record<string, number>};
 export type DiscoverMode = 'random' | 'foryou';
@@ -31,7 +31,17 @@ export type User = {
   major: string; interests: string[]; goals: string; campus: string; onboarded: boolean;
   /** Clubs this account owns and may edit in the club manager. */
   managed_club_ids?: string[];
+  username: string | null; grad_year: number | null; bio: string;
+  /** private: only you. students: other signed-in students can open your profile (never your email or goals). */
+  profile_visibility: 'private' | 'students';
+  avatar_url: string | null;
 };
+/** Another student's profile, as they chose to share it. */
+export type StudentProfile = Pick<User, 'id' | 'display_name' | 'username' | 'major' | 'grad_year' | 'campus' | 'bio' | 'interests' | 'avatar_url'>;
+export type ProfileEvent = CampusEvent & {rsvp: 'going' | 'interested' | null; saved: boolean};
+export type ActivityItem = {kind: 'post' | 'comment'; id: string; post_id: string; title: string; club_id: string; club_name: string; created_at: string; comment_count?: number; excerpt?: string};
+/** The signed-in student's own profile page. Counts come straight from their records. */
+export type ProfileSummary = {stats: {clubs: number; events_going: number; saved: number; posts: number}; clubs: Club[]; later: Club[]; events: ProfileEvent[]; activity: ActivityItem[]};
 export type AuthConfig = {google_client_id: string | null; allowed_domains: string[]; password_login: boolean};
 export type Saved = {club_ids: string[]; event_ids: string[]; dismissed_ids: string[]; maybe_later_ids?: string[]; rsvps?: Record<string, 'going' | 'interested'>; live_events?: CampusEvent[]};
 export type Answer = {answer: string; sources: {title: string; url: string; excerpt: string}[]; supported: boolean; method: string};
@@ -43,6 +53,8 @@ export type ForumPost = {
   title: string;
   body: string;
   author_name: string;
+  /** Set only when the author shares their profile with signed-in students. */
+  author_username?: string | null;
   created_at: string;
   updated_at: string;
   comment_count: number;
@@ -53,6 +65,7 @@ export type ForumComment = {
   post_id: string;
   body: string;
   author_name: string;
+  author_username?: string | null;
   created_at: string;
   can_delete: boolean;
 };

@@ -228,7 +228,10 @@ def recommend(graph, clubs, *, follows=(), bookmarks=(), dismissed=(), interests
         club = by_id[club_id]
         per_category[club["category"]] += 1
         reasons = explain(graph, club_id, by_id, follows, bookmarks, interest_hits, major, text_scores, live)
-        picked.append({**club, "score": round(score / top, 4), "explanation": reasons[0], "reasons": reasons})
+        # The student's own interests this club is linked to, as short labels for the card.
+        linked = graph.neighbours.get(club_node(club_id), {})
+        tags = list(dict.fromkeys(topics.label(n[6:]) for n in interest_hits if n.startswith("topic:") and n in linked))[:3]
+        picked.append({**club, "score": round(score / top, 4), "explanation": reasons[0], "reasons": reasons, "tags": tags})
     return picked, "graph"
 
 

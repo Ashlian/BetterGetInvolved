@@ -1,7 +1,7 @@
 'use client';
 import {useEffect, useRef, useState, type FormEvent} from 'react';
-import {Check, ChevronRight, LoaderCircle, LogOut, ShieldCheck, Trash2, Users} from 'lucide-react';
-import {api, post, put, cleanName, CAMPUSES, INTERESTS, MAJORS, type AuthConfig, type Club, type User} from '@/lib/api';
+import {Check, LoaderCircle, ShieldCheck} from 'lucide-react';
+import {api, post, put, CAMPUSES, INTERESTS, MAJORS, type AuthConfig, type User} from '@/lib/api';
 import Dialog from './dialog';
 
 export function ErrorMessage({message}: {message: string}) {return message ? <p className="form-error" role="alert">{message}</p> : null;}
@@ -61,7 +61,7 @@ export function AuthDialog({onClose, onSuccess}: {onClose: () => void; onSuccess
       {loading && <p className="fine-print" role="status"><LoaderCircle className="spin" size={15}/> Signing you in…</p>}
       <ErrorMessage message={error}/>
     </div>
-    <div className="privacy-note"><ShieldCheck size={17}/><span>We only receive your name and ScarletMail address from Google. Your interests stay private. No student directory, public profile, or social tracking.</span></div>
+    <div className="privacy-note"><ShieldCheck size={17}/><span>We only receive your name and ScarletMail address from Google. Your interests stay private. Profiles are private unless you choose to share yours with signed-in students. No student directory or social tracking.</span></div>
     {config?.password_login && <details className="demo-credentials"><summary>Local demo accounts (demo mode only)</summary>
       <p>Student: <code>student@demo.local</code> / <code>StudentDemo2026!</code><br/>Officer: <code>officer@demo.local</code> / <code>OfficerDemo2026!</code></p>
       <form className="form-stack" onSubmit={demoLogin}>
@@ -90,19 +90,4 @@ export function OnboardingDialog({user, onClose, onSave}: {user: User; onClose: 
     <label>Home campus<select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select></label>
     <label>What would you like to get out of campus life?<textarea value={goals} onChange={e => setGoals(e.target.value)} maxLength={1000} placeholder="Meet people, try something creative, build a robot…" rows={3}/></label><ErrorMessage message={error}/><SubmitButton loading={loading}>Save interests</SubmitButton><button className="text-button centered" type="button" onClick={onClose}>Skip for now</button>
   </form></Dialog>;
-}
-
-export function ProfilePanel({user, managedClubs, onManage, onSave, onLogout, onDelete}: {user: User; managedClubs: Club[]; onManage: () => void; onSave: (user: User) => void; onLogout: () => void; onDelete: () => void}) {
-  const [name, setName] = useState(user.display_name); const [major, setMajor] = useState(user.major); const [interests, setInterests] = useState(user.interests); const [goals, setGoals] = useState(user.goals); const [campus, setCampus] = useState(user.campus);
-  const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const [saved, setSaved] = useState(false); const [deleting, setDeleting] = useState(false); const [confirm, setConfirm] = useState('');
-  async function submit(e: FormEvent<HTMLFormElement>) {e.preventDefault(); setError(''); setSaved(false); setLoading(true); try {onSave(await put<User>('/profile', {display_name: name, major: major.trim(), interests, goals, campus, onboarded: true})); setSaved(true);} catch (e) {setError((e as Error).message);} finally {setLoading(false);}}
-  async function deleteAccount() {setLoading(true); setError(''); try {await api('/auth/me', {method: 'DELETE'}); onDelete();} catch (e) {setError((e as Error).message); setLoading(false);}}
-  return <div className="profile-layout"><section className="surface profile-form"><div className="profile-intro"><span className="profile-avatar">{user.display_name.slice(0, 1).toUpperCase()}</span><div><h2>{user.display_name}</h2><p>Your major and interests shape suggestions. Change them anytime.</p></div></div><form className="form-stack" onSubmit={submit}>
-    <div className="form-columns"><label>Preferred name<input value={name} onChange={e => {setName(e.target.value); setSaved(false);}} required minLength={2} maxLength={80}/></label><label>Email<input value={user.email} disabled readOnly/></label></div>
-    <div className="form-columns"><MajorField value={major} onChange={value => {setMajor(value); setSaved(false);}}/><label>Home campus<select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select></label></div>
-    <fieldset><legend>Your interests</legend><div className="interest-picker">{INTERESTS.map(interest => <button key={interest} type="button" className={`interest-option ${interests.includes(interest) ? 'chosen' : ''}`} aria-pressed={interests.includes(interest)} onClick={() => setInterests(interests.includes(interest) ? interests.filter(i => i !== interest) : [...interests, interest])}>{interest}{interests.includes(interest) && <Check size={13}/>}</button>)}</div></fieldset>
-    <label>Your campus goals<textarea value={goals} onChange={e => setGoals(e.target.value)} rows={4} maxLength={1000} placeholder="What are you hoping to find?"/></label><ErrorMessage message={error}/><div className="form-actions"><SubmitButton loading={loading}>Save preferences<Check size={17}/></SubmitButton>{saved && <span className="success-message" role="status">Preferences saved</span>}</div>
-  </form></section><aside className="profile-aside">{managedClubs.length > 0 && <div className="surface managed-clubs-card"><Users size={22}/><h3>Clubs you manage</h3><ul>{managedClubs.map(club => <li key={club.id}><span className="club-dot" style={{background: club.color}}/>{cleanName(club.name)}</li>)}</ul><button className="button button-outline full-width" onClick={onManage}>Open club manager<ChevronRight size={16}/></button></div>}<div className="surface privacy-card"><ShieldCheck size={25}/><h3>Privacy</h3><p>Your profile is private. We use your major, interests, and goals to suggest clubs. Suggestions can miss the mark; you can always explore the full directory.</p><p>We do not use sensitive traits, sell profile data, or track you across websites.</p><div className="mini-divider"/><p className="fine-print">Account type: {user.role}. Signed in as {user.email}. BetterGetInvolved is a student project, not an official Rutgers service.</p><button className="button button-outline full-width" onClick={onLogout}><LogOut size={16}/>Sign out</button></div><button className="delete-button" onClick={() => setDeleting(true)}><Trash2 size={15}/>Delete my account and data</button></aside>
-    {deleting && <Dialog title="Delete your account?" onClose={() => setDeleting(false)}><p className="dialog-description">This permanently removes your profile, preferences, follows, saved events, session, and forum posts and comments. Removing your posts also deletes other people's replies to those posts. Type DELETE to confirm.</p><label className="form-stack">Confirmation<input value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="DELETE"/></label><ErrorMessage message={error}/><button className="button button-danger full-width" disabled={confirm !== 'DELETE' || loading} onClick={deleteAccount}>Permanently delete account</button></Dialog>}
-  </div>;
 }

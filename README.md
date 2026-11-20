@@ -71,6 +71,15 @@ Ownership is granted by site admins from the command line (there is no self-serv
 
 A bare NetID means `NetID@scarletmail.rutgers.edu`. Owners who haven't signed in yet are stored as pending (`club_owner_invites`) and get access at their first ScarletMail sign-in.
 
+## Profiles and the home dashboard
+
+The navigation is **Home · Discover · Events · Social · Profile** (Social is the forums; the old Saved page is now a tab on Profile).
+
+- **Profile** shows a photo, name, @username, major, class year, campus, bio, and interests, with counts that come straight from the student's records: clubs followed, events marked "Going", saved items, and forum posts. Tabs list followed clubs (and clubs they own), upcoming and past events with RSVP status, saved clubs and events, and forum activity. **Edit profile** changes every field, the photo (PNG, JPEG, or WebP up to 1 MB, checked by its bytes and served sandboxed), and who can see the profile.
+- **Visibility** is private by default. A student can choose to share their profile with signed-in Rutgers students, who can then open it from their forum posts. Others never see an email, goals, follows, or RSVPs.
+- **Home** greets signed-in students and shows their upcoming RSVPs and saved events, announcements (forum posts by the owners of clubs they follow), recommended clubs with the reason for each, live Rutgers events that match their interests, and quick links.
+- **There is no friends or connections feature**, and "events going" counts RSVPs, not confirmed attendance; the app has no check-in. Recommendations come from the club graph; nothing is a trained model and no match percentages are shown.
+
 ## Discover modes and the club graph
 
 Discover's one-at-a-time view has a switch with a short explanation under it:

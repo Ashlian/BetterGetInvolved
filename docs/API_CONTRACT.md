@@ -15,7 +15,12 @@ All endpoints start `/api`. A Next.js route handler forwards to FastAPI on 127.0
 - POST /auth/login {email,password} -> User, sets cookie
 - POST /auth/logout -> {ok:true}, clears cookie
 - DELETE /auth/me -> {ok:true}, deletes user data/session
-- PUT /profile {display_name?,interests?,goals?,campus?,onboarded?} -> User
+- PUT /profile {display_name?,major?,interests?,goals?,campus?,onboarded?,username?,grad_year?,bio?,profile_visibility?} -> User (username "" and grad_year 0 clear them; 409 if the username is taken)
+- PUT /profile/avatar (raw PNG/JPEG/WebP body, max 1 MB) -> User; DELETE /profile/avatar -> User
+- GET /profile/summary -> {stats: {clubs, events_going, saved, posts}, clubs: Club[], later: Club[], events: (Event & {rsvp, saved})[], activity: [{kind: 'post'|'comment', id, post_id, title, club_id, club_name, created_at, comment_count?, excerpt?}]} (signed-in user only)
+- GET /users/{username} -> {id, display_name, username, major, grad_year, campus, bio, interests, avatar_url} (signed in; 404 unless the profile is shared with students or is your own)
+- GET /users/{id}/avatar -> image (same visibility rule; private cache)
+- GET /announcements?limit=8 -> ForumPost[] (posts by a club's owners, from clubs you follow)
 - GET /saved -> {club_ids: string[], event_ids: string[], dismissed_ids: string[], maybe_later_ids: string[], rsvps: Record<string,'interested'|'going'>}
 - POST /clubs/{id}/follow -> {following:boolean}
 - POST /clubs/{id}/bookmark -> {bookmarked:boolean} (private maybe-later list)

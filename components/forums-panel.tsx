@@ -39,6 +39,8 @@ type ForumsPanelProps = {
   user: User | null;
   onSignIn: () => void;
   initialPostId?: string;
+  /** Opens a student's profile when they share it with signed-in students. */
+  onOpenProfile?: (username: string) => void;
 };
 
 type DeleteTarget = {kind: 'post'; id: string} | {kind: 'comment'; id: string};
@@ -60,6 +62,7 @@ export default function ForumsPanel({
   user,
   onSignIn,
   initialPostId,
+  onOpenProfile,
 }: ForumsPanelProps) {
   const [query, setQuery] = useState('');
   const [clubId, setClubId] = useState('');
@@ -344,7 +347,7 @@ export default function ForumsPanel({
                     <time dateTime={thread.created_at}>{postedAt(thread.created_at)}</time>
                   </div>
                   <h2 className="forum-thread-title" ref={threadHeading} tabIndex={-1}>{thread.title}</h2>
-                  <Author name={thread.author_name}/>
+                  <Author name={thread.author_name} username={thread.author_username} onOpen={onOpenProfile}/>
                   <div className="forum-body">{thread.body}</div>
                   <div className="forum-thread-actions">
                     <span className="forum-comment-count"><MessageCircle size={17}/>{thread.comment_count} {thread.comment_count === 1 ? 'comment' : 'comments'}</span>
@@ -358,7 +361,7 @@ export default function ForumsPanel({
                     {!comments.length && <p className="forum-first-comment">No comments yet. A good conversation starts with one hello.</p>}
                     {comments.map(comment => (
                       <article className="forum-comment" key={comment.id}>
-                        <div className="forum-comment-heading"><Author name={comment.author_name}/><time dateTime={comment.created_at}>{postedAt(comment.created_at)}</time></div>
+                        <div className="forum-comment-heading"><Author name={comment.author_name} username={comment.author_username} onOpen={onOpenProfile}/><time dateTime={comment.created_at}>{postedAt(comment.created_at)}</time></div>
                         <p className="forum-body">{comment.body}</p>
                         {comment.can_delete && <button className="text-button forum-delete-action" onClick={() => confirmDelete({kind: 'comment', id: comment.id})} disabled={deleting}><Trash2 size={14}/>Delete comment</button>}
                         {deleteConfirmation({kind: 'comment', id: comment.id})}
@@ -406,7 +409,7 @@ export default function ForumsPanel({
                     <div className="forum-post-meta"><button className="forum-club-badge" onClick={() => setClubId(item.club_id)}><MessageSquare size={14}/>{cleanName(item.club_name)}</button><time dateTime={item.created_at}>{postedAt(item.created_at)}</time></div>
                     <h3><a className="forum-post-link" href={`/forums/${encodeURIComponent(item.id)}`} onClick={event => {if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {event.preventDefault(); openThread(item.id);}}}>{item.title}</a></h3>
                     <p className="forum-post-preview">{item.body}</p>
-                    <div className="forum-card-footer"><Author name={item.author_name}/><button className="forum-comment-link" onClick={() => openThread(item.id)} aria-label={`${item.comment_count} ${item.comment_count === 1 ? 'comment' : 'comments'} on ${item.title}`}><MessageCircle size={17}/>{item.comment_count} {item.comment_count === 1 ? 'comment' : 'comments'}</button></div>
+                    <div className="forum-card-footer"><Author name={item.author_name} username={item.author_username} onOpen={onOpenProfile}/><button className="forum-comment-link" onClick={() => openThread(item.id)} aria-label={`${item.comment_count} ${item.comment_count === 1 ? 'comment' : 'comments'} on ${item.title}`}><MessageCircle size={17}/>{item.comment_count} {item.comment_count === 1 ? 'comment' : 'comments'}</button></div>
                   </article>
                 ))}
               </div>
@@ -436,8 +439,11 @@ export default function ForumsPanel({
   );
 }
 
-function Author({name}: {name: string}) {
-  return <span className="forum-author"><span className="forum-author-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></span>;
+function Author({name, username, onOpen}: {name: string; username?: string | null; onOpen?: (username: string) => void}) {
+  const content = <><span className="forum-author-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></>;
+  // Only students who share their profile get a link; everyone else is just a name.
+  if (username && onOpen) return <button type="button" className="forum-author forum-author-link plain-button" onClick={event => {event.stopPropagation(); onOpen(username);}} aria-label={`View ${name}'s profile`}>{content}</button>;
+  return <span className="forum-author">{content}</span>;
 }
 
 function Loading({message}: {message: string}) {

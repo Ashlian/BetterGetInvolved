@@ -59,7 +59,9 @@ LOGO_MAX_BYTES = 1024 * 1024
 # that is most of the response time. Edits made through the API clear the copy at once; scripts
 # that write to the database directly show up within this many seconds.
 CATALOG_CACHE_SECONDS = 30
-LOGO_PATH = re.compile(r"^/api/officer/clubs/[^/]+/logo$")
+LOGO_PATH = re.compile(r"^/api/officer/clubs/[^/]+/logo$|^/api/profile/avatar$")
+USERNAME_PATTERN = re.compile(r"^(?![.])(?!.*[.]$)[a-z0-9_.]{3,30}$")
+AVATAR_TYPES = {"image/png", "image/jpeg", "image/webp"}
 # SVG is deliberately excluded: it can carry scripts.
 LOGO_SIGNATURES = (
     (b"\x89PNG\r\n\x1a\n", "image/png"),
@@ -182,6 +184,35 @@ class Profile(Input):
     goals: str | None = Field(default=None, max_length=1000)
     campus: str | None = Field(default=None, max_length=80)
     onboarded: bool | None = None
+    # "" clears the username and 0 clears the class year; both are optional.
+    username: str | None = Field(default=None, max_length=30)
+    grad_year: int | None = Field(default=None, ge=0, le=2040)
+    bio: str | None = Field(default=None, max_length=300)
+    profile_visibility: Literal["private", "students"] | None = None
+
+    @field_validator("username")
+    @classmethod
+    def valid_username(cls, value):
+        if value is None:
+            return value
+        value = value.lower().lstrip("@")
+        if value and not USERNAME_PATTERN.match(value):
+            raise ValueError("Usernames are 3 to 30 letters, numbers, underscores, or periods, and can't start or end with a period")
+        return value
+
+    @field_validator("grad_year")
+    @classmethod
+    def valid_year(cls, value):
+        if value and value < 2000:
+            raise ValueError("Enter a class year between 2000 and 2040")
+        return value
+
+    @field_validator("bio")
+    @classmethod
+    def plain_bio(cls, value):
+        if value is not None and re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", value):
+            raise ValueError("Bio contains unsupported characters")
+        return value
 
     @field_validator("interests")
     @classmethod
@@ -346,6 +377,7 @@ CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id TEXT NO
 CREATE TABLE IF NOT EXISTS officers(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
 CREATE TABLE IF NOT EXISTS graph_edges(src TEXT NOT NULL, dst TEXT NOT NULL, kind TEXT NOT NULL, weight REAL NOT NULL, PRIMARY KEY(src,dst,kind));
 CREATE INDEX IF NOT EXISTS graph_edges_dst_idx ON graph_edges(dst);
+CREATE TABLE IF NOT EXISTS user_avatars(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, content_type TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS club_logos(club_id TEXT PRIMARY KEY REFERENCES clubs(id) ON DELETE CASCADE, content_type TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS club_owner_invites(email TEXT NOT NULL, club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE, created_at TEXT NOT NULL, PRIMARY KEY(email,club_id));
 CREATE TABLE IF NOT EXISTS follows(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, club_id TEXT NOT NULL REFERENCES clubs(id), PRIMARY KEY(user_id,club_id));
@@ -371,7 +403,7 @@ CREATE INDEX IF NOT EXISTS forum_comments_author_idx ON forum_comments(author_id
 # remaining comments, so cascading account deletion cannot leave stale counts.
 FORUM_POST_SELECT = """
 SELECT p.id,p.club_id,p.title,p.body,p.author_id,p.created_at,
-       u.display_name AS author_name,c.payload AS club_payload,
+       u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility,c.payload AS club_payload,
        COALESCE(a.comment_count,0) AS comment_count,
        CASE WHEN a.last_comment_at>p.updated_at THEN a.last_comment_at
             ELSE p.updated_at END AS last_activity_at
@@ -409,6 +441,14 @@ class Store:
             if "google_sub" not in existing:
                 conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub_idx ON users(google_sub)")
+            # Profile page fields. avatar_version is the photo's upload time, so its URL changes
+            # when the photo does and browsers can cache it in between.
+            for column, definition in (("username", "TEXT"), ("grad_year", "INTEGER"), ("bio", "TEXT NOT NULL DEFAULT ''"),
+                                       ("profile_visibility", "TEXT NOT NULL DEFAULT 'private' CHECK (profile_visibility IN ('private','students'))"),
+                                       ("avatar_version", "INTEGER")):
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username)")
 
     def initialize(self, seed_path, demo_mode):
         self.db.create_schema(SCHEMA)
@@ -548,8 +588,19 @@ def grant_club_owner(conn, club_id, email):
     return "invited"
 
 
+def avatar_url(row):
+    return f"/api/users/{row['id']}/avatar?v={row['avatar_version']}" if row["avatar_version"] else None
+
+
 def public_user(row):
-    return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "major": row["major"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"])}
+    """The signed-in user's own account, as only they see it."""
+    return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "major": row["major"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"]),
+            "username": row["username"], "grad_year": row["grad_year"], "bio": row["bio"], "profile_visibility": row["profile_visibility"], "avatar_url": avatar_url(row)}
+
+
+def student_profile(row):
+    """What another signed-in student sees: never email, goals, role, follows, or RSVPs."""
+    return {"id": row["id"], "display_name": row["display_name"], "username": row["username"], "major": row["major"], "grad_year": row["grad_year"], "campus": row["campus"], "bio": row["bio"], "interests": json.loads(row["interests"]), "avatar_url": avatar_url(row)}
 
 
 LIVE_SYNC_SECONDS = 3 * 60 * 60
@@ -704,11 +755,15 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
     def can_delete_forum(author_id, user):
         return bool(user and (user["id"] == author_id or user["role"] == "admin"))
 
+    def author_handle(row, user):
+        visible = user and (user["id"] == row["author_id"] or row["author_visibility"] == "students")
+        return row["author_username"] if visible else None
+
     def public_forum_post(row, user):
-        return {"id":row["id"],"club_id":row["club_id"],"club_name":json.loads(row["club_payload"])["name"],"title":row["title"],"body":row["body"],"author_name":row["author_name"],"created_at":row["created_at"],"updated_at":row["last_activity_at"],"comment_count":row["comment_count"],"can_delete":can_delete_forum(row["author_id"],user)}
+        return {"id":row["id"],"club_id":row["club_id"],"club_name":json.loads(row["club_payload"])["name"],"title":row["title"],"body":row["body"],"author_name":row["author_name"],"author_username":author_handle(row,user),"created_at":row["created_at"],"updated_at":row["last_activity_at"],"comment_count":row["comment_count"],"can_delete":can_delete_forum(row["author_id"],user)}
 
     def public_forum_comment(row, user):
-        return {"id":row["id"],"post_id":row["post_id"],"body":row["body"],"author_name":row["author_name"],"created_at":row["created_at"],"can_delete":can_delete_forum(row["author_id"],user)}
+        return {"id":row["id"],"post_id":row["post_id"],"body":row["body"],"author_name":row["author_name"],"author_username":author_handle(row,user),"created_at":row["created_at"],"can_delete":can_delete_forum(row["author_id"],user)}
 
     def forum_post_row(conn, post_id):
         if "\x00" in post_id:
@@ -755,7 +810,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         user = optional_user(request)
         with store.connect() as conn:
             post = public_forum_post(forum_post_row(conn,post_id),user)
-            rows = conn.execute("SELECT c.*,u.display_name AS author_name FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? ORDER BY c.created_at,c.id LIMIT ?",(post_id,FORUM_COMMENT_LIMIT+1)).fetchall()
+            rows = conn.execute("SELECT c.*,u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? ORDER BY c.created_at,c.id LIMIT ?",(post_id,FORUM_COMMENT_LIMIT+1)).fetchall()
         if len(rows) > FORUM_COMMENT_LIMIT:
             raise HTTPException(409,"This thread exceeds the 1,000-comment display limit. Please contact an administrator.")
         return {**post,"comments":[public_forum_comment(row,user) for row in rows]}
@@ -786,7 +841,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 if count >= FORUM_COMMENT_LIMIT:
                     raise HTTPException(409,"This thread has reached its 1,000-comment limit. Start a new post.")
                 conn.execute("INSERT INTO forum_comments(id,post_id,author_id,body,created_at) VALUES (?,?,?,?,?)",(comment_id,post_id,user["id"],body.body,created_at))
-                row = conn.execute("SELECT c.*,u.display_name AS author_name FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.id=?",(comment_id,)).fetchone()
+                row = conn.execute("SELECT c.*,u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.id=?",(comment_id,)).fetchone()
                 comment = public_forum_comment(row,user)
         except store.IntegrityError:
             raise HTTPException(409,"The thread or account changed. Refresh and try again.")
@@ -1030,10 +1085,19 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         if "onboarded" in updates:
             # Stored as 0/1: Postgres, unlike SQLite, rejects a boolean in an integer column.
             updates["onboarded"] = int(updates["onboarded"])
+        if updates.get("username") == "":
+            updates["username"] = None
+        if updates.get("grad_year") == 0:
+            updates["grad_year"] = None
         if updates:
-            with store.connect() as conn:
-                # Column names come exclusively from the validated model.
-                conn.execute("UPDATE users SET " + ",".join(f"{key}=?" for key in updates) + " WHERE id=?", (*updates.values(),user["id"]))
+            try:
+                with store.connect() as conn:
+                    if updates.get("username") and conn.execute("SELECT 1 FROM users WHERE username=? AND id<>?", (updates["username"], user["id"])).fetchone():
+                        raise HTTPException(409, "That username is taken")
+                    # Column names come exclusively from the validated model.
+                    conn.execute("UPDATE users SET " + ",".join(f"{key}=?" for key in updates) + " WHERE id=?", (*updates.values(),user["id"]))
+            except store.IntegrityError:
+                raise HTTPException(409, "That username is taken")
         with store.connect() as conn:
             row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
         return account(row)
@@ -1043,6 +1107,87 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         with store.connect() as conn:
             live_ids = [r[0] for r in conn.execute("SELECT event_id FROM live_saves WHERE user_id=? ORDER BY event_id",(user["id"],))]
             return {"club_ids": [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=? ORDER BY club_id",(user["id"],))], "event_ids": [r[0] for r in conn.execute("SELECT event_id FROM saves WHERE user_id=? ORDER BY event_id",(user["id"],))] + live_ids, "live_events": store.live_records(live_ids), "dismissed_ids": [r[0] for r in conn.execute("SELECT club_id FROM dismissals WHERE user_id=? ORDER BY club_id",(user["id"],))], "maybe_later_ids": [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=? ORDER BY club_id",(user["id"],))], "rsvps": {r[0]:r[1] for r in conn.execute("SELECT event_id,status FROM rsvps WHERE user_id=?",(user["id"],))}}
+
+    @app.put("/api/profile/avatar")
+    async def upload_avatar(request: Request, user=Depends(current_user)):
+        data = await request.body()
+        if len(data) > LOGO_MAX_BYTES:
+            raise HTTPException(413, "Profile photos can be at most 1 MB")
+        content_type = logo_type(data)
+        if content_type not in AVATAR_TYPES:
+            raise HTTPException(415, "Upload a PNG, JPEG, or WebP image")
+        stamp = now_iso()
+        with store.connect() as conn:
+            conn.execute("INSERT INTO user_avatars VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET content_type=excluded.content_type,data=excluded.data,updated_at=excluded.updated_at", (user["id"], content_type, base64.b64encode(data).decode(), stamp))
+            conn.execute("UPDATE users SET avatar_version=? WHERE id=?", (int(datetime.fromisoformat(stamp).timestamp()), user["id"]))
+            row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        return account(row)
+
+    @app.delete("/api/profile/avatar")
+    def delete_avatar(user=Depends(current_user)):
+        with store.connect() as conn:
+            conn.execute("DELETE FROM user_avatars WHERE user_id=?", (user["id"],))
+            conn.execute("UPDATE users SET avatar_version=NULL WHERE id=?", (user["id"],))
+            row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        return account(row)
+
+    def can_see_profile(viewer, row):
+        # Private profiles are for their owner only; shared ones for signed-in students.
+        return bool(viewer and row and (viewer["id"] == row["id"] or row["profile_visibility"] == "students"))
+
+    @app.get("/api/users/{user_id}/avatar")
+    def user_avatar(user_id: str, request: Request):
+        viewer = optional_user(request)
+        with store.connect() as conn:
+            owner = conn.execute("SELECT id,profile_visibility FROM users WHERE id=?", (user_id,)).fetchone()
+            row = conn.execute("SELECT content_type,data FROM user_avatars WHERE user_id=?", (user_id,)).fetchone() if can_see_profile(viewer, owner) else None
+        if not row:
+            raise HTTPException(404, "No profile photo")
+        return Response(base64.b64decode(row["data"]), media_type=row["content_type"], headers={
+            # Private: a shared cache must never hand one student's photo to someone else.
+            "Cache-Control": "private, max-age=31536000, immutable",
+            "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+        })
+
+    @app.get("/api/users/{username}")
+    def student(username: str, user=Depends(current_user)):
+        with store.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE username=?", (username.lower().lstrip("@")[:31],)).fetchone()
+        if not can_see_profile(user, row):
+            raise HTTPException(404, "This profile is private or doesn't exist")
+        return student_profile(row)
+
+    @app.get("/api/profile/summary")
+    def profile_summary(user=Depends(current_user)):
+        """Everything on the signed-in student's own profile page, in one request."""
+        by_id = {club["id"]: club for club in store.records("clubs")}
+        with store.connect() as conn:
+            followed = [r[0] for r in conn.execute("SELECT club_id FROM follows WHERE user_id=?", (user["id"],))]
+            later = [r[0] for r in conn.execute("SELECT club_id FROM bookmarks WHERE user_id=?", (user["id"],))]
+            rsvps = {r[0]: r[1] for r in conn.execute("SELECT event_id,status FROM rsvps WHERE user_id=?", (user["id"],))}
+            saved_ids = [r[0] for r in conn.execute("SELECT event_id FROM saves WHERE user_id=?", (user["id"],))]
+            live_ids = [r[0] for r in conn.execute("SELECT event_id FROM live_saves WHERE user_id=?", (user["id"],))]
+            event_rows = {r[0]: json.loads(r[1]) for r in conn.execute("SELECT id,payload FROM events WHERE id IN (SELECT event_id FROM rsvps WHERE user_id=? UNION SELECT event_id FROM saves WHERE user_id=?)", (user["id"], user["id"]))}
+            posts = conn.execute(FORUM_POST_SELECT + " WHERE p.author_id=? ORDER BY p.created_at DESC LIMIT 30", (user["id"],)).fetchall()
+            comments = conn.execute("SELECT c.id,c.post_id,c.body,c.created_at,p.title AS post_title,p.club_id FROM forum_comments c JOIN forum_posts p ON p.id=c.post_id WHERE c.author_id=? ORDER BY c.created_at DESC LIMIT 30", (user["id"],)).fetchall()
+        clubs = lambda ids: sorted((public_club(by_id[i], user) for i in ids if i in by_id), key=lambda c: c["name"].casefold())
+        events = [{**event, "rsvp": rsvps.get(event_id), "saved": event_id in saved_ids} for event_id, event in event_rows.items()]
+        events += [{**event, "rsvp": None, "saved": True} for event in store.live_records(live_ids)]
+        events.sort(key=lambda e: e["starts_at"])
+        activity = [{"kind": "post", "id": r["id"], "post_id": r["id"], "title": r["title"], "club_id": r["club_id"], "club_name": json.loads(r["club_payload"])["name"], "created_at": r["created_at"], "comment_count": r["comment_count"]} for r in posts]
+        activity += [{"kind": "comment", "id": r["id"], "post_id": r["post_id"], "title": r["post_title"], "club_id": r["club_id"], "club_name": by_id.get(r["club_id"], {}).get("name", ""), "created_at": r["created_at"], "excerpt": r["body"][:160]} for r in comments]
+        activity.sort(key=lambda a: a["created_at"], reverse=True)
+        return {
+            "stats": {"clubs": len(followed), "events_going": sum(1 for s in rsvps.values() if s == "going"), "saved": len(later) + len(saved_ids) + len(live_ids), "posts": len(posts) + len(comments)},
+            "clubs": clubs(followed), "later": clubs(later), "events": events, "activity": activity[:30],
+        }
+
+    @app.get("/api/announcements")
+    def announcements(user=Depends(current_user), limit: int = Query(default=8, ge=1, le=30)):
+        """Forum posts written by a club's own owners, from clubs this student follows."""
+        with store.connect() as conn:
+            rows = conn.execute(FORUM_POST_SELECT + " JOIN officers o ON o.user_id=p.author_id AND o.club_id=p.club_id JOIN follows f ON f.club_id=p.club_id AND f.user_id=? ORDER BY p.created_at DESC,p.id DESC LIMIT ?", (user["id"], limit)).fetchall()
+        return [public_forum_post(row, user) for row in rows]
 
     def toggle(table, column, item_id, user_id):
         assert (table,column) in (("follows","club_id"),("bookmarks","club_id"),("dismissals","club_id"),("saves","event_id"),("live_saves","event_id"))
@@ -1185,7 +1330,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             "graph": "Personalized PageRank over the club graph: walks out from clubs you follow or saved and the topics in your interests and major. Passed clubs push their neighbours down.",
             "cold_start": "Nothing to start from yet. Sign in, pick interests or a major, or follow a few clubs, and For you fills up.",
         }
-        return {"clubs": [{**public_club(c, user), "score": c["score"], "explanation": c["explanation"], "reasons": c["reasons"]} for c in picked], "method": method, "note": notes[method], "graph": graph.stats()}
+        return {"clubs": [{**public_club(c, user), "score": c["score"], "explanation": c["explanation"], "reasons": c["reasons"], "tags": c["tags"]} for c in picked], "method": method, "note": notes[method], "graph": graph.stats()}
 
     @app.post("/api/reports")
     def reports(body: Report,user=Depends(current_user)):
