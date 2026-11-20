@@ -134,6 +134,41 @@ The evaluation command compares keyword and hybrid retrieval on labeled syntheti
 
 With both servers running, `.venv/bin/python scripts/smoke.py` verifies the browser-facing API connection and cleans up its temporary test account. See the [verification record](docs/VERIFICATION.md) for passed checks and the browser-permission limitation.
 
+## Deploying to Vercel
+
+The site deploys as **two Vercel projects from this one repository**: the Next.js site, and the Python API. Visitors only ever talk to the site; its `/api` route forwards to the API with a shared secret, and the API refuses anything that doesn't carry it. Supabase stays the database.
+
+**1. API project**
+- New Project → import this repo → set **Root Directory** to `backend`. Vercel detects FastAPI; `backend/pyproject.toml` sets Python 3.12, the runtime packages (no test tools), and the entry point `vercel_app:app`.
+- Environment variables:
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | Supabase **Transaction pooler** string (port 6543), from Supabase → Connect. Serverless functions open many short connections, which the session pooler (5432) runs out of. |
+| `GOOGLE_CLIENT_ID` | the OAuth client ID |
+| `ALLOWED_EMAIL_DOMAINS` | `scarletmail.rutgers.edu` |
+| `PROXY_SECRET` | a long random string (same value in both projects) |
+| `CRON_SECRET` | another long random string (same value in both projects) |
+| `ALLOWED_ORIGINS` | `https://<your-site-domain>` (optional: writes from the site's own domain, previews included, are accepted through the proxy anyway) |
+| `DB_POOL_MAX` | `3` |
+
+  On Vercel the API defaults to production mode (no demo accounts, Secure cookies) and refuses to start without `DATABASE_URL`, since there is no writable disk for SQLite. Deploy, and note the production URL.
+
+**2. Site project**
+- New Project → import the same repo → leave Root Directory at the repository root (framework: Next.js; pnpm is picked up from `pnpm-lock.yaml`).
+- Environment variables: `API_URL` = the API project's production URL (e.g. `https://bettergetinvolved-api.vercel.app`), plus the same `PROXY_SECRET` and `CRON_SECRET`.
+- Deploy. `vercel.json` schedules `/api/cron/live-events` once a day (10:00 UTC, the most the Hobby plan allows); Vercel sends `CRON_SECRET` with it and the proxy passes it to the API, which refreshes Rutgers events. On Pro you can run it every few hours.
+
+**3. Google sign-in**
+- In Google Cloud → Credentials → your OAuth client, add the site's URL (e.g. `https://bettergetinvolved.vercel.app`, and any custom domain) under **Authorized JavaScript origins**.
+- While the consent screen is in *Testing*, only listed test users can sign in. Publishing it needs a home page and a privacy policy.
+
+**Things that behave differently on Vercel**
+- The first request after a quiet period starts a fresh function: expect a few seconds for the first club search or For you while the club graph loads from Supabase.
+- Rate limits and the 30-second catalog cache live in each function instance's memory, so they are per instance rather than global.
+- Rutgers events refresh when the cron runs, not every three hours as the local server does.
+- Preview deployments of the API are protected by Vercel Authentication by default, so a preview of the site should point `API_URL` at the API's production URL (or turn that protection off for the API project).
+
 ## Running the built app
 
 ```bash

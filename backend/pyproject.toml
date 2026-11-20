@@ -1,0 +1,19 @@
+# Deployment settings for the API as its own Vercel project (Root Directory: backend/).
+# Local development keeps using backend/requirements.txt, which adds the test tools.
+# backend/tests/test_deploy.py checks that the versions here match that file.
+[project]
+name = "bettergetinvolved-api"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.119.1",
+    "scikit-learn==1.7.2",
+    "tzdata==2026.6",
+    "psycopg[binary]==3.2.10",
+    "psycopg-pool==3.2.6",
+    "google-auth==2.62.2",
+    "requests==2.34.2",
+]
+
+[tool.vercel]
+entrypoint = "vercel_app:app"

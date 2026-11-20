@@ -16,6 +16,7 @@ import secrets
 import threading
 import time
 import uuid
+import asyncio
 import base64
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager, contextmanager
@@ -465,8 +466,9 @@ class Store:
             officer_clubs = []
             if not fixture:
                 seed = {"clubs": seed, "events": []}
-                if demo_mode:
-                    officer_clubs = [json.loads((ROOT / "data" / "demo_club.json").read_text(encoding="utf-8"))]
+                demo_club = ROOT / "data" / "demo_club.json"
+                if demo_mode and demo_club.exists():  # data/ isn't deployed with the API on Vercel
+                    officer_clubs = [json.loads(demo_club.read_text(encoding="utf-8"))]
                     seed["clubs"] = seed["clubs"] + officer_clubs
             for club in seed["clubs"]:
                 conn.execute("INSERT INTO clubs VALUES (?,?) ON CONFLICT DO NOTHING", (club["id"], json.dumps(club)))
@@ -607,14 +609,24 @@ LIVE_SYNC_SECONDS = 3 * 60 * 60
 
 
 def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, database_url=None, db_schema="public", google_client_id=None, google_verifier=None):
-    demo_mode = os.getenv("DEMO_MODE", "1") == "1" if demo_mode is None else demo_mode
-    live_sync = os.getenv("LIVE_EVENTS_SYNC", "1") == "1" if live_sync is None else live_sync
+    # On Vercel the defaults flip to production: no demo accounts, and no background sync
+    # thread (serverless functions freeze between requests; a cron request syncs instead).
+    serverless = bool(os.getenv("VERCEL"))
+    demo_mode = os.getenv("DEMO_MODE", "0" if serverless else "1") == "1" if demo_mode is None else demo_mode
+    live_sync = os.getenv("LIVE_EVENTS_SYNC", "0" if serverless else "1") == "1" if live_sync is None else live_sync
+    if serverless and not db_path and not (database_url or os.getenv("DATABASE_URL")):
+        # Vercel's file system is read-only, so the local SQLite fallback cannot work there.
+        raise RuntimeError("DATABASE_URL is not set. Add the Supabase connection string to this Vercel project's environment variables.")
     # An explicit file path (tests) always means SQLite; otherwise DATABASE_URL
     # selects Supabase Postgres, falling back to the local SQLite file.
     database_url = database_url if database_url is not None else (None if db_path else os.getenv("DATABASE_URL"))
     store = Store(open_database(database_url, db_path or os.getenv("DATABASE_PATH", str(ROOT / "backend" / "local.db")), db_schema))
     seed_path = seed_path or ROOT / "data" / "rutgers_clubs.json"
-    allowed_origins = set(os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000").split(","))
+    allowed_origins = {o.strip().rstrip("/") for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000").split(",") if o.strip()}
+    # Shared with the Next.js proxy. When set, the API answers only requests that came through
+    # that proxy, and trusts the visitor IP and site host the proxy reports.
+    proxy_secret = os.getenv("PROXY_SECRET", "").strip()
+    cron_secret = os.getenv("CRON_SECRET", "").strip()
     demo_hosts = set(os.getenv("DEMO_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver").split(","))
     reference = os.getenv("DEMO_REFERENCE_DATE", "2026-10-22") if demo_mode else None
     google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip() if google_client_id is None else google_client_id
@@ -641,9 +653,22 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 age = 0
             stop_sync.wait(max(60, LIVE_SYNC_SECONDS - age))
 
+    ready = {"done": False}
+    ready_lock = threading.Lock()
+
+    def ensure_ready():
+        """Create or migrate tables once per process. Runs at startup, and on the first request
+        in case the host (a serverless platform) skips ASGI lifespan events."""
+        if ready["done"]:
+            return
+        with ready_lock:
+            if not ready["done"]:
+                store.initialize(seed_path, demo_mode)
+                ready["done"] = True
+
     @asynccontextmanager
     async def lifespan(app):
-        store.initialize(seed_path, demo_mode)
+        ensure_ready()
         if live_sync:
             threading.Thread(target=sync_loop, name="live-events-sync", daemon=True).start()
         yield
@@ -663,17 +688,26 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
     @app.middleware("http")
     async def security(request: Request, call_next):
         path = request.url.path
+        via_proxy = bool(proxy_secret) and hmac.compare_digest(request.headers.get("x-bgi-proxy-secret", ""), proxy_secret)
+        if proxy_secret and not via_proxy:
+            return JSONResponse(status_code=403, content={"detail": "Use the site's /api routes"})
         if demo_mode and request.url.hostname not in demo_hosts:
             return JSONResponse(status_code=403, content={"detail": "Demo mode is restricted to local hosts"})
+        if not ready["done"]:
+            await asyncio.to_thread(ensure_ready)
         if request.method not in ("GET", "HEAD", "OPTIONS"):
-            if request.headers.get("origin") not in allowed_origins:
+            origin = (request.headers.get("origin") or "").rstrip("/")
+            # Same-site writes only: the origin must be listed, or (behind the proxy) be the very
+            # site the request was made to, which also covers Vercel preview URLs.
+            same_site = via_proxy and origin and urlparse(origin).netloc == request.headers.get("x-bgi-site-host", "")
+            if origin not in allowed_origins and not same_site:
                 return JSONResponse(status_code=403, content={"detail": "Request origin is not allowed"})
             try:
                 if int(request.headers.get("content-length", "0")) > (LOGO_MAX_BYTES if LOGO_PATH.match(path) else 65536):
                     return JSONResponse(status_code=413, content={"detail": "Request body is too large"})
             except ValueError:
                 return JSONResponse(status_code=400, content={"detail": "Invalid content length"})
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = (request.headers.get("x-bgi-client-ip", "").strip() if via_proxy else "") or (request.client.host if request.client else "unknown")
         bucket = "auth" if path in ("/api/auth/login", "/api/auth/register", "/api/auth/google") else "faq" if path.endswith("/faq") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
         limit = {"auth": 15, "faq": 25, "forum_write": 30, "general": 300}[bucket]
         timestamp = time.monotonic()
@@ -931,6 +965,15 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
 
     def any_event(event_id):
         return store.live_record(event_id) if is_live(event_id) else store.record("events", event_id)
+
+    @app.get("/api/cron/live-events")
+    def cron_live_events(request: Request):
+        """Refresh Rutgers events. Vercel Cron calls this with "Authorization: Bearer <CRON_SECRET>"."""
+        if not cron_secret or not hmac.compare_digest(request.headers.get("authorization", ""), f"Bearer {cron_secret}"):
+            raise HTTPException(404, "Not found")
+        sync_live_events()
+        state = store.live_state()
+        return {"synced_at": state["synced_at"], "count": len(state["ids"]), "error": state.get("error") or None}
 
     @app.get("/api/live/status")
     def live_status():

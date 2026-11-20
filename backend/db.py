@@ -9,6 +9,7 @@ Postgres schema hardening Supabase needs.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import sqlite3
 import threading
@@ -94,6 +95,9 @@ class Postgres:
 
         # prepare_threshold=None keeps Supabase's transaction pooler (port 6543) working.
         # The pool opens on first use, so importing the app never touches the network.
+        # Serverless hosts run many small instances: keep each one's share of connections low.
+        max_size = int(os.getenv("DB_POOL_MAX", max_size))
+        min_size = min(min_size, max_size)
         self.pool = ConnectionPool(url, min_size=min_size, max_size=max_size, configure=configure, kwargs={"prepare_threshold": None, "connect_timeout": 10}, open=False)
         self._opened, self._open_lock = False, threading.Lock()
 
