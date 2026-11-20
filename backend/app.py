@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import re
 import secrets
@@ -102,12 +103,17 @@ def public_club(club, user):
     return out
 
 
+logger = logging.getLogger("bettergetinvolved")
+
+
 def google_token_verifier(client_id):
     """Verify a Google Identity Services ID token (signature, expiry, audience, issuer)."""
     def verify(credential):
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
-        return id_token.verify_oauth2_token(credential, google_requests.Request(), client_id)
+        # A few seconds of slack: a server clock running slightly behind Google's otherwise
+        # rejects fresh tokens as "used too early".
+        return id_token.verify_oauth2_token(credential, google_requests.Request(), client_id, clock_skew_in_seconds=10)
     return verify
 
 
@@ -929,7 +935,9 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             raise HTTPException(503, "Google sign-in is not configured on this server")
         try:
             claims = verify_google(body.credential)
-        except Exception:
+        except Exception as error:
+            # The student sees a generic message; the server log says why (never the token itself).
+            logger.warning("Google sign-in rejected: %s: %s", type(error).__name__, error)
             raise HTTPException(401, "Google sign-in could not be verified. Please try again.")
         email = str(claims.get("email", "")).strip().lower()
         domain = email.rsplit("@", 1)[-1] if "@" in email else ""
