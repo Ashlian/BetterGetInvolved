@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BetterGetInvolved — Find your people',
-  description: 'A student-built demo for discovering campus clubs and events, with transparent interest-based recommendations.',
+  title: 'ClRUb — Find your people at Rutgers',
+  description: 'Discover Rutgers–New Brunswick clubs and events, with plain-language search and explained recommendations. An independent student project.',
 };
 
 export const viewport: Viewport = {

@@ -61,7 +61,7 @@ export function AuthDialog({onClose, onSuccess}: {onClose: () => void; onSuccess
       {loading && <p className="fine-print" role="status"><LoaderCircle className="spin" size={15}/> Signing you in…</p>}
       <ErrorMessage message={error}/>
     </div>
-    <div className="privacy-note"><ShieldCheck size={17}/><span>We only receive your name and ScarletMail address from Google. Your interests stay private. Profiles are private unless you choose to share yours with signed-in students. No student directory or social tracking.</span></div>
+    <div className="privacy-note"><ShieldCheck size={17}/><span>We only receive your name and ScarletMail address from Google. Your interests stay private. Profiles are private unless you choose to share yours with signed-in students. No student directory or social tracking. <a className="inline-link" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a></span></div>
     {config?.password_login && <details className="demo-credentials"><summary>Local demo accounts (demo mode only)</summary>
       <p>Student: <code>student@demo.local</code> / <code>StudentDemo2026!</code><br/>Officer: <code>officer@demo.local</code> / <code>OfficerDemo2026!</code></p>
       <form className="form-stack" onSubmit={demoLogin}>

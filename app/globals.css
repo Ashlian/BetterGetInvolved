@@ -1,4 +1,4 @@
-/* BetterGetInvolved. Semantic tokens first; every color has a light, dark, and
+/* ClRUb. Semantic tokens first; every color has a light, dark, and
    increased-contrast value. Campus route colors are the only multicolor element. */
 :root{
   color-scheme:light dark;
@@ -687,3 +687,4 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
   .quick-links{gap:6px}
   .rsvp-badge{top:6px;right:36px}
 }
+.footer-links{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px}
