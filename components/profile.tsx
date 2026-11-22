@@ -98,7 +98,7 @@ export function ProfilePage({user, managedClubs, tab, onTab, refreshKey, savedEv
 }
 
 function ClubRow({club, note, onOpen, action}: {club: Club; note: string; onOpen: () => void; action?: React.ReactNode}) {
-  return <div className="club-row"><button className="club-row-main plain-button" onClick={onOpen}><ClubArt category={club.category} color={club.color} logo={club.logo_url}/><span><strong>{cleanName(club.name)}</strong><small>{note}</small></span><ChevronRight size={18} aria-hidden="true"/></button>{action}</div>;
+  return <div className="club-row"><button className="club-row-main plain-button" onClick={onOpen}><ClubArt category={club.category} color={club.color} logo={club.logo_url}/><span className="club-row-text"><strong>{cleanName(club.name)}</strong><small>{note}</small></span><ChevronRight size={18} aria-hidden="true"/></button>{action}</div>;
 }
 
 function ProfileEventRow({event, saved, onOpen, onSave}: {event: ProfileEvent; saved: boolean; onOpen: () => void; onSave: () => void}) {
