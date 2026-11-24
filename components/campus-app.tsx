@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ArrowLeft, ArrowUpRight, Bookmark, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, Heart, House, Inbox as InboxIcon, LoaderCircle, LogIn, Megaphone, MessagesSquare, Radio, Search, Settings2, ShieldCheck, Shuffle, SlidersHorizontal, Sparkles, Users, UserRound, X} from 'lucide-react';
+import {ArrowLeft, ArrowUpRight, Bookmark, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, Heart, House, LoaderCircle, LogIn, Megaphone, MessagesSquare, Radio, Search, Settings2, ShieldCheck, Shuffle, SlidersHorizontal, Sparkles, Users, UserRound, X} from 'lucide-react';
 import {api, post, cleanName, dateFormat, dateKey, eventEnd, eventTime, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type ForYou, type DiscoverMode, type ClubSearchResult, type SearchUnderstanding, type CampusEvent, type ForumPost, type LiveStatus, type Unread, type User, type Saved} from '@/lib/api';
 import {AuthDialog, OnboardingDialog} from './account';
 import UserAvatar from './avatar';
@@ -13,15 +13,15 @@ import {ClubDetail, EventDetail} from './detail-dialogs';
 import EventCalendar, {EventRow, easternDay} from './event-calendar';
 import OfficerPanel from './officer-panel';
 import ForumsPanel from './forums-panel';
-import InboxPage, {type InboxTab} from './inbox';
+import InboxPage, {SocialTabs, type InboxTab} from './inbox';
 import {CampusMark, ClubArt, campusSlug, categoryIcon} from './visuals';
 
 type View = 'home' | 'discover' | 'events' | 'forums' | 'inbox' | 'profile' | 'officer';
 const NO_UNREAD: Unread = {messages: 0, notifications: 0};
 const UNREAD_POLL_MS = 60000;
 const EMPTY_SAVED: Saved = {club_ids: [], event_ids: [], dismissed_ids: [], maybe_later_ids: [], rsvps: {}};
-const NAV = [{id: 'home' as const, title: 'Home', icon: House}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'forums' as const, title: 'Social', icon: MessagesSquare}, {id: 'inbox' as const, title: 'Inbox', icon: InboxIcon}];
-const viewTitles: Record<View, string> = {home: 'Home', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Inbox', profile: 'Profile', officer: 'Club manager'};
+const NAV = [{id: 'home' as const, title: 'Home', icon: House}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'forums' as const, title: 'Social', icon: MessagesSquare}];
+const viewTitles: Record<View, string> = {home: 'Home', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Social', profile: 'Profile', officer: 'Club manager'};
 // The site's contact address comes from the environment (set in Vercel and .env), not the code.
 // How much a dragged card tilts: one degree per this many pixels.
 const DRAG_TILT = 18;
@@ -123,6 +123,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     return () => {active = false; clearInterval(timer); document.removeEventListener('visibilitychange', check);};
   }, [user?.id]);
   const updateUnread = useCallback((next: Unread) => setUnread(current => current.messages === next.messages && current.notifications === next.notifications ? current : next), []);
+  const navView = view === 'inbox' ? 'forums' : view;
   const unreadTotal = unread.messages + unread.notifications;
   function openPerson(who: string) {if (!user) {setAuthOpen(true); return;} setStudentProfile(who);}
   function openConversation(id: string) {setClubDetail(null); setStudentProfile(null); setInboxTab('messages'); setConversationId(id); go('inbox');}
@@ -292,7 +293,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     discover: directory ? `Search all ${clubs.length} clubs by name, interest, or a plain-language request.` : discoverMode === 'foryou' ? 'Clubs picked for you, one at a time. Follow, keep for later, or pass.' : 'Random clubs, one at a time. Follow, keep for later, or pass.',
     events: eventSource === 'live' ? 'Real Rutgers–New Brunswick club, recreation, and game listings.' : 'Sample events from the demo clubs, for trying saves and RSVPs.',
     forums: 'Ask questions, share experiences, and talk about your clubs.',
-    inbox: 'Messages, questions, and updates from your clubs.',
+    inbox: inboxTab === 'messages' ? 'Your direct messages and questions to clubs. Only the people in a conversation can see it.' : 'Replies, announcements, and changes to your events.',
     profile: '',
     officer: 'Update the clubs you own: profile, tags, contacts, questions, and events.',
   };
@@ -302,7 +303,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     <a href="#main-content" className="skip-link">Skip to content</a>
     <aside className="sidebar glass" aria-label="Sidebar">
       <button className="brand plain-button" onClick={() => go('home')} aria-label="ClRUb, Home"><span className="brand-mark" aria-hidden="true">C</span><span className="brand-type">ClRUb<small>Rutgers–New Brunswick</small></span></button>
-      <nav aria-label="Main navigation">{NAV.map(item => <button key={item.id} className={`nav-item ${view === item.id ? 'active' : ''}`} onClick={() => go(item.id)} aria-current={view === item.id ? 'page' : undefined}><item.icon size={20} strokeWidth={2}/><span>{item.title}</span>{item.id === 'inbox' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}
+      <nav aria-label="Main navigation">{NAV.map(item => <button key={item.id} className={`nav-item ${navView === item.id ? 'active' : ''}`} onClick={() => go(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={20} strokeWidth={2}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}
         {isOfficer && <><p className="nav-label">Your clubs</p><button className={`nav-item ${view === 'officer' ? 'active' : ''}`} onClick={() => go('officer')} aria-current={view === 'officer' ? 'page' : undefined}><Users size={20} strokeWidth={2}/><span>Club manager</span></button></>}
       </nav>
       <div className="sidebar-bottom"><button className="nav-item" onClick={() => setAboutOpen(true)}><CircleHelp size={20} strokeWidth={2}/><span>About</span></button><button className={`account-row plain-button ${view === 'profile' ? 'active' : ''}`} onClick={() => user ? go('profile') : setAuthOpen(true)}>{avatar}<span><strong>{user?.display_name || 'Sign in'}</strong><small>{user ? 'Profile and interests' : 'Follow clubs, save events'}</small></span><ChevronRight size={16}/></button></div>
@@ -366,9 +367,10 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
 
         {view === 'events' && <>{hasLive && events.length > 0 && <div className="segmented view-switch" role="group" aria-label="Event source"><button className={eventSource === 'live' ? 'selected' : ''} aria-pressed={eventSource === 'live'} onClick={() => {setEventSource('live'); setEventResults(liveEvents);}}><Radio size={16}/>Rutgers events<span className="count">{liveEvents.length}</span></button><button className={eventSource === 'demo' ? 'selected' : ''} aria-pressed={eventSource === 'demo'} onClick={() => {setEventSource('demo'); setEventCategory(''); setEventResults(events);}}><FlaskConical size={16}/>Demo clubs</button></div>}<div className="filter-bar"><div className="search-input"><Search size={18}/><input aria-label="Search events" placeholder="Try “free beginner AI this week”" value={eventQuery} onChange={e => setEventQuery(e.target.value)} enterKeyHint="search"/>{eventQuery && <button className="icon-button clear-button" aria-label="Clear search" onClick={() => setEventQuery('')}><X size={15}/></button>}</div><label className="select-filter"><span className="sr-only">Campus</span><Compass size={16}/><select value={eventCampus} onChange={e => setEventCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label>{eventSource === 'live' && <label className="select-filter"><span className="sr-only">Category</span><SlidersHorizontal size={16}/><select value={eventCategory} onChange={e => setEventCategory(e.target.value)}><option value="">All categories</option>{liveCategories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label>}</div>{eventSource === 'live' && liveNote && <p className="route-source source-line"><Radio size={14}/>{liveNote}. Only New Brunswick club, arts, recreation, and home-game listings are shown.</p>}{eventsSearchError && <p className="form-error" role="alert">{eventsSearchError}</p>}{eventsSearching && <p className="result-count" role="status">Searching…</p>}<div className={eventsSearching ? 'is-loading' : ''} aria-busy={eventsSearching}><EventCalendar key={eventSource} events={eventResults} savedIds={saved.event_ids} onOpen={openEvent} onSave={event => void saveEvent(event)} today={easternDay(eventSource === 'live' ? new Date(now) : REFERENCE_DATE)} footnote={eventSource === 'live' ? 'Times are Eastern Time. Listings change; confirm details on getINVOLVED before you go.' : 'Times are Eastern Time. “Today” for demo events is October 22, 2026.'}/></div></>}
 
-        {view === 'forums' && <ForumsPanel clubs={clubs} user={user} onSignIn={() => setAuthOpen(true)} initialPostId={initialForumPostId} onOpenProfile={openPerson}/>}
+        {(view === 'forums' || view === 'inbox') && <SocialTabs tab={view === 'forums' ? 'discussions' : inboxTab} unread={unread} onTab={tab => {if (tab === 'discussions') go('forums'); else {setInboxTab(tab); go('inbox');}}}/>}
+        {view === 'forums' && <div id="social-panel" role="tabpanel" aria-labelledby="social-tab-discussions"><ForumsPanel clubs={clubs} user={user} onSignIn={() => setAuthOpen(true)} initialPostId={initialForumPostId} onOpenProfile={openPerson}/></div>}
 
-        {view === 'inbox' && (user ? <InboxPage key={user.id} tab={inboxTab} onTab={setInboxTab} conversationId={conversationId} onConversation={setConversationId} unread={unread} onUnread={updateUnread} onOpenProfile={openPerson} onOpenClub={openClubById} onOpenEvent={openEventById}/> : <GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in to see your inbox" description="Messages, answers from club managers, and updates from clubs you follow."/>)}
+        {view === 'inbox' && (user ? <InboxPage key={user.id} tab={inboxTab} conversationId={conversationId} onConversation={setConversationId} unread={unread} onUnread={updateUnread} onOpenProfile={openPerson} onOpenClub={openClubById} onOpenEvent={openEventById}/> : <GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in to see your messages and notifications" description="Messages, answers from club managers, and updates from clubs you follow."/>)}
 
         {view === 'profile' && (user ? <ProfilePage key={user.id} user={user} managedClubs={managedClubs} tab={profileTab} onTab={setProfileTab} refreshKey={profileKey} savedEventIds={saved.event_ids}
             onUser={next => void profileSaved(next)} onOpenClub={setClubDetail} onOpenEvent={openEvent} onFollow={follow} onLater={bookmark} onSaveEvent={saveEvent}
@@ -380,7 +382,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
       </>}
       </main>
     </div>
-    <nav className="tab-bar glass" aria-label="Main navigation">{NAV.map(item => <button key={item.id} className={view === item.id ? 'active' : ''} onClick={() => go(item.id)} aria-current={view === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={view === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'inbox' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{firstName ? 'Profile' : 'Sign in'}</span></button></nav>
+    <nav className="tab-bar glass" aria-label="Main navigation">{NAV.map(item => <button key={item.id} className={navView === item.id ? 'active' : ''} onClick={() => go(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={navView === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{firstName ? 'Profile' : 'Sign in'}</span></button></nav>
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <CircleHelp size={18}/> : <Check size={18}/>}<span>{toast.text}</span><button aria-label="Dismiss" onClick={() => setToast(null)}><X size={15}/></button></div>}
     {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} onSuccess={(next, isNew) => void authSuccess(next, isNew)}/>}
     {onboarding && user && <OnboardingDialog user={user} onClose={() => setOnboarding(false)} onSave={next => void profileSaved(next)}/>}

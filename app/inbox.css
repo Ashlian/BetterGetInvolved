@@ -43,11 +43,19 @@
 .message-composer textarea:focus{box-shadow:0 0 0 3px var(--accent-soft),inset 0 0 0 1px var(--accent)}
 .message-composer textarea::placeholder{color:var(--label-3)}
 .composer-row{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.composer-hint{margin-right:auto;font-size:var(--t-caption);color:var(--label-2)}
+@media (hover:none) and (pointer:coarse){.composer-hint{display:none}}
 .notification-bar{display:flex;justify-content:flex-end;margin-bottom:8px}
 .notification-list{overflow:hidden}
 .notification-list li+li{border-top:.5px solid var(--separator)}
 .notification-row{width:100%;text-align:left}
 .notification-row.unread{background:var(--accent-soft)}
+.social-tabs .unread-badge{min-width:18px;height:18px;padding:0 5px}
+@media (max-width:480px){
+  .social-tabs{display:flex}
+  .social-tabs button{flex:1 1 auto;padding:0 6px;gap:5px;font-size:var(--t-footnote)}
+  .social-tabs button svg{display:none}
+}
 @media (max-width:860px){
   .inbox-layout,.inbox-layout.has-thread{grid-template-columns:minmax(0,1fr)}
   .inbox-layout.has-thread .conversation-list,.thread-placeholder{display:none}

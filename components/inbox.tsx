@@ -1,5 +1,5 @@
 'use client';
-import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
+import {useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent} from 'react';
 import {ArrowLeft, Ban, Bell, CalendarDays, CalendarX2, CheckCheck, Inbox as InboxIcon, LoaderCircle, Megaphone, MessageCircle, MessageSquare, MessagesSquare, Send} from 'lucide-react';
 import {api, post, cleanName, dateFormat, relativeTime, type Conversation, type ConversationThread, type Inbox, type Notification, type Unread} from '@/lib/api';
 import {ErrorMessage} from './account';
@@ -9,6 +9,17 @@ import {ClubArt} from './visuals';
 import '@/app/inbox.css';
 
 export type InboxTab = 'messages' | 'notifications';
+export type SocialTab = 'discussions' | InboxTab;
+const SOCIAL_TABS = [{id: 'discussions' as const, label: 'Discussions', icon: MessagesSquare}, {id: 'messages' as const, label: 'Messages', icon: MessageCircle}, {id: 'notifications' as const, label: 'Notifications', icon: Bell}];
+
+/** The sections of Social: public discussions, then this student's own messages and notifications. */
+export function SocialTabs({tab, onTab, unread}: {tab: SocialTab; onTab: (tab: SocialTab) => void; unread: Unread}) {
+  return <div className="segmented view-switch social-tabs" role="tablist" aria-label="Social sections">{SOCIAL_TABS.map(({id, label, icon: Icon}) => {
+    const count = id === 'discussions' ? 0 : unread[id];
+    return <button key={id} id={`social-tab-${id}`} role="tab" aria-selected={tab === id} aria-controls="social-panel" className={tab === id ? 'selected' : ''} onClick={() => onTab(id)}><Icon size={16}/>{label}{count > 0 && <span className="unread-badge">{count > 99 ? '99+' : count}<span className="sr-only"> unread</span></span>}</button>;
+  })}</div>;
+}
+
 const MESSAGE_MAX = 2000;
 const THREAD_POLL_MS = 10000;
 
@@ -21,21 +32,28 @@ export function MessageComposer({label, placeholder, button = 'Send', onSend, au
     setSending(true); setError('');
     try {await onSend(body); setDraft('');} catch (e) {setError((e as Error).message);} finally {setSending(false);}
   }
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // Enter sends and Shift+Enter starts a new line. Enter that confirms an IME suggestion does neither.
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+    // Touch keyboards have no Shift+Enter, so Enter stays a new line there and the button sends.
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return;
+    event.preventDefault(); void submit();
+  }
   return <form className="message-composer" onSubmit={event => void submit(event)}>
-    <textarea aria-label={label} placeholder={placeholder} value={draft} onChange={e => setDraft(e.target.value)} rows={2} maxLength={MESSAGE_MAX} autoFocus={autoFocus} onKeyDown={e => {if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void submit();}}/>
+    <textarea aria-label={label} placeholder={placeholder} value={draft} onChange={e => setDraft(e.target.value)} rows={2} maxLength={MESSAGE_MAX} autoFocus={autoFocus} onKeyDown={onKeyDown} enterKeyHint="enter"/>
     <ErrorMessage message={error}/>
-    <div className="composer-row">{draft.length > MESSAGE_MAX - 300 && <span className="char-count tabular">{draft.length}/{MESSAGE_MAX}</span>}<button className="button button-primary button-small" disabled={sending || !draft.trim()}>{sending ? <LoaderCircle size={15} className="spin"/> : <Send size={15}/>}{sending ? 'Sending…' : button}</button></div>
+    <div className="composer-row"><span className="composer-hint">Enter to send · Shift + Enter for a new line</span>{draft.length > MESSAGE_MAX - 300 && <span className="char-count tabular">{draft.length}/{MESSAGE_MAX}</span>}<button className="button button-primary button-small" disabled={sending || !draft.trim()}>{sending ? <LoaderCircle size={15} className="spin"/> : <Send size={15}/>}{sending ? 'Sending…' : button}</button></div>
   </form>;
 }
 
 type Props = {
-  tab: InboxTab; onTab: (tab: InboxTab) => void;
+  tab: InboxTab;
   conversationId: string | null; onConversation: (id: string | null) => void;
   unread: Unread; onUnread: (unread: Unread) => void;
   onOpenProfile: (id: string) => void; onOpenClub: (id: string) => void; onOpenEvent: (id: string) => void;
 };
 
-export default function InboxPage({tab, onTab, conversationId, onConversation, unread, onUnread, onOpenProfile, onOpenClub, onOpenEvent}: Props) {
+export default function InboxPage({tab, conversationId, onConversation, unread, onUnread, onOpenProfile, onOpenClub, onOpenEvent}: Props) {
   const [inbox, setInbox] = useState<Inbox | null>(null); const [error, setError] = useState('');
   const request = useRef(0);
   const load = useCallback(async () => {
@@ -60,13 +78,9 @@ export default function InboxPage({tab, onTab, conversationId, onConversation, u
   }
 
   return <div className="inbox-page">
-    <div className="segmented view-switch" role="tablist" aria-label="Inbox sections">
-      <button id="inbox-tab-messages" role="tab" aria-selected={tab === 'messages'} aria-controls="inbox-panel" className={tab === 'messages' ? 'selected' : ''} onClick={() => onTab('messages')}><MessageCircle size={16}/>Messages{unread.messages > 0 && <span className="count">{unread.messages}</span>}</button>
-      <button id="inbox-tab-notifications" role="tab" aria-selected={tab === 'notifications'} aria-controls="inbox-panel" className={tab === 'notifications' ? 'selected' : ''} onClick={() => onTab('notifications')}><Bell size={16}/>Notifications{unread.notifications > 0 && <span className="count">{unread.notifications}</span>}</button>
-    </div>
-    <div id="inbox-panel" role="tabpanel" aria-labelledby={`inbox-tab-${tab}`}>
+    <div id="social-panel" role="tabpanel" aria-labelledby={`social-tab-${tab}`}>
       {error && <div className="inbox-error"><ErrorMessage message={error}/><button className="text-button" onClick={() => void load()}>Try again</button></div>}
-      {!inbox ? !error && <div className="loading-state" role="status"><LoaderCircle className="spin" size={22}/>Loading your inbox…</div>
+      {!inbox ? !error && <div className="loading-state" role="status"><LoaderCircle className="spin" size={22}/>Loading…</div>
       : tab === 'messages' ? <div className={`inbox-layout ${conversationId ? 'has-thread' : ''}`}>
           <section className="conversation-list surface" aria-label="Conversations">
             {inbox.conversations.length ? <ul>{inbox.conversations.map(item => <li key={item.id}><ConversationRow item={item} selected={item.id === conversationId} onOpen={() => onConversation(item.id)}/></li>)}</ul>
