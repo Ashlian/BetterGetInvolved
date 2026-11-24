@@ -32,7 +32,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from . import graph as club_graph
-from . import live_events
+from . import live_events, messaging
 from .db import SQLite, open_database
 from .search import HybridIndex, MODEL_NAME, answer_faq, parse_constraints, same_campus, tokens
 
@@ -190,6 +190,7 @@ class Profile(Input):
     grad_year: int | None = Field(default=None, ge=0, le=2040)
     bio: str | None = Field(default=None, max_length=300)
     profile_visibility: Literal["private", "students"] | None = None
+    message_access: Literal["students", "none"] | None = None
 
     @field_validator("username")
     @classmethod
@@ -236,7 +237,7 @@ class RSVP(Input):
 
 
 class Report(Input):
-    kind: Literal["club", "event", "answer", "forum_post", "forum_comment"]
+    kind: Literal["club", "event", "answer", "forum_post", "forum_comment", "conversation", "profile"]
     target_id: str = Field(min_length=1, max_length=100)
     reason: str = Field(min_length=5, max_length=2000)
 
@@ -397,14 +398,15 @@ CREATE INDEX IF NOT EXISTS forum_posts_club_idx ON forum_posts(club_id,created_a
 CREATE INDEX IF NOT EXISTS forum_posts_author_idx ON forum_posts(author_id);
 CREATE INDEX IF NOT EXISTS forum_comments_thread_idx ON forum_comments(post_id,created_at,id);
 CREATE INDEX IF NOT EXISTS forum_comments_author_idx ON forum_comments(author_id);
-"""
+""" + messaging.MESSAGE_SCHEMA
 
 
 # Standard SQL shared by SQLite and Postgres. Last activity is derived from
 # remaining comments, so cascading account deletion cannot leave stale counts.
 FORUM_POST_SELECT = """
 SELECT p.id,p.club_id,p.title,p.body,p.author_id,p.created_at,
-       u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility,c.payload AS club_payload,
+       u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility,u.avatar_version AS author_avatar,
+       (SELECT COUNT(*) FROM officers ao WHERE ao.user_id=p.author_id AND ao.club_id=p.club_id) AS author_manages,c.payload AS club_payload,
        COALESCE(a.comment_count,0) AS comment_count,
        CASE WHEN a.last_comment_at>p.updated_at THEN a.last_comment_at
             ELSE p.updated_at END AS last_activity_at
@@ -413,6 +415,11 @@ JOIN users u ON u.id=p.author_id
 JOIN clubs c ON c.id=p.club_id
 LEFT JOIN (SELECT post_id,COUNT(*) AS comment_count,MAX(created_at) AS last_comment_at
            FROM forum_comments GROUP BY post_id) a ON a.post_id=p.id
+"""
+FORUM_COMMENT_SELECT = """
+SELECT c.*,u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility,u.avatar_version AS author_avatar,
+       (SELECT COUNT(*) FROM officers ao WHERE ao.user_id=c.author_id AND ao.club_id=p.club_id) AS author_manages
+FROM forum_comments c JOIN users u ON u.id=c.author_id JOIN forum_posts p ON p.id=c.post_id
 """
 FORUM_COMMENT_LIMIT = 1000
 
@@ -446,6 +453,8 @@ class Store:
             # when the photo does and browsers can cache it in between.
             for column, definition in (("username", "TEXT"), ("grad_year", "INTEGER"), ("bio", "TEXT NOT NULL DEFAULT ''"),
                                        ("profile_visibility", "TEXT NOT NULL DEFAULT 'private' CHECK (profile_visibility IN ('private','students'))"),
+                                       # Who may start a direct message with this student.
+                                       ("message_access", "TEXT NOT NULL DEFAULT 'students' CHECK (message_access IN ('students','none'))"),
                                        ("avatar_version", "INTEGER")):
                 if column not in existing:
                     conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
@@ -597,12 +606,23 @@ def avatar_url(row):
 def public_user(row):
     """The signed-in user's own account, as only they see it."""
     return {"id": row["id"], "email": row["email"], "display_name": row["display_name"], "role": row["role"], "major": row["major"], "interests": json.loads(row["interests"]), "goals": row["goals"], "campus": row["campus"], "onboarded": bool(row["onboarded"]),
-            "username": row["username"], "grad_year": row["grad_year"], "bio": row["bio"], "profile_visibility": row["profile_visibility"], "avatar_url": avatar_url(row)}
+            "username": row["username"], "grad_year": row["grad_year"], "bio": row["bio"], "profile_visibility": row["profile_visibility"], "message_access": row["message_access"], "avatar_url": avatar_url(row)}
 
 
 def student_profile(row):
     """What another signed-in student sees: never email, goals, role, follows, or RSVPs."""
     return {"id": row["id"], "display_name": row["display_name"], "username": row["username"], "major": row["major"], "grad_year": row["grad_year"], "campus": row["campus"], "bio": row["bio"], "interests": json.loads(row["interests"]), "avatar_url": avatar_url(row)}
+
+
+def can_see_profile(viewer, row):
+    # Private profiles are for their owner only; shared ones for signed-in students.
+    return bool(viewer and row and (viewer["id"] == row["id"] or row["profile_visibility"] == "students"))
+
+
+def student_card(row, viewer):
+    """The short form used in lists. A private profile shows only the name, as forum posts do."""
+    shared = can_see_profile(viewer, row)
+    return {"id": row["id"], "display_name": row["display_name"], "shared": shared, "username": row["username"] if shared else None, "avatar_url": avatar_url(row) if shared else None}
 
 
 LIVE_SYNC_SECONDS = 3 * 60 * 60
@@ -708,8 +728,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             except ValueError:
                 return JSONResponse(status_code=400, content={"detail": "Invalid content length"})
         client_ip = (request.headers.get("x-bgi-client-ip", "").strip() if via_proxy else "") or (request.client.host if request.client else "unknown")
-        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register", "/api/auth/google") else "faq" if path.endswith("/faq") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
-        limit = {"auth": 15, "faq": 25, "forum_write": 30, "general": 300}[bucket]
+        bucket = "auth" if path in ("/api/auth/login", "/api/auth/register", "/api/auth/google") else "faq" if path.endswith("/faq") else "message_write" if path.startswith("/api/conversations") and request.method == "POST" and not path.endswith("/read") else "forum_write" if path.startswith("/api/forums") and request.method in ("POST", "PUT", "PATCH", "DELETE") else "general"
+        limit = {"auth": 15, "faq": 25, "forum_write": 30, "message_write": 30, "general": 300}[bucket]
         timestamp = time.monotonic()
         with rate_lock:
             key = (client_ip, bucket)
@@ -727,7 +747,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
-        if path.startswith(("/api/auth", "/api/profile", "/api/saved", "/api/recommendations", "/api/officer", "/api/forums")):
+        if path.startswith(("/api/auth", "/api/profile", "/api/saved", "/api/recommendations", "/api/officer", "/api/forums", "/api/inbox", "/api/conversations", "/api/notifications", "/api/announcements")) or path.endswith("/managers") or (path.startswith("/api/users/") and not path.endswith("/avatar")):
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -793,11 +813,18 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         visible = user and (user["id"] == row["author_id"] or row["author_visibility"] == "students")
         return row["author_username"] if visible else None
 
+    def author_fields(row, user):
+        """Who wrote it. Signed-in students can open any author; a private profile shows only the name."""
+        visible = user and (user["id"] == row["author_id"] or row["author_visibility"] == "students")
+        return {"author_name": row["author_name"], "author_username": author_handle(row, user), **({"author_id": row["author_id"]} if user else {}),
+                "author_avatar_url": avatar_url({"id": row["author_id"], "avatar_version": row["author_avatar"]}) if visible else None,
+                "author_is_manager": bool(user and row["author_manages"])}
+
     def public_forum_post(row, user):
-        return {"id":row["id"],"club_id":row["club_id"],"club_name":json.loads(row["club_payload"])["name"],"title":row["title"],"body":row["body"],"author_name":row["author_name"],"author_username":author_handle(row,user),"created_at":row["created_at"],"updated_at":row["last_activity_at"],"comment_count":row["comment_count"],"can_delete":can_delete_forum(row["author_id"],user)}
+        return {"id":row["id"],"club_id":row["club_id"],"club_name":json.loads(row["club_payload"])["name"],"title":row["title"],"body":row["body"],**author_fields(row,user),"created_at":row["created_at"],"updated_at":row["last_activity_at"],"comment_count":row["comment_count"],"can_delete":can_delete_forum(row["author_id"],user)}
 
     def public_forum_comment(row, user):
-        return {"id":row["id"],"post_id":row["post_id"],"body":row["body"],"author_name":row["author_name"],"author_username":author_handle(row,user),"created_at":row["created_at"],"can_delete":can_delete_forum(row["author_id"],user)}
+        return {"id":row["id"],"post_id":row["post_id"],"body":row["body"],**author_fields(row,user),"created_at":row["created_at"],"can_delete":can_delete_forum(row["author_id"],user)}
 
     def forum_post_row(conn, post_id):
         if "\x00" in post_id:
@@ -844,7 +871,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         user = optional_user(request)
         with store.connect() as conn:
             post = public_forum_post(forum_post_row(conn,post_id),user)
-            rows = conn.execute("SELECT c.*,u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.post_id=? ORDER BY c.created_at,c.id LIMIT ?",(post_id,FORUM_COMMENT_LIMIT+1)).fetchall()
+            rows = conn.execute(FORUM_COMMENT_SELECT + "WHERE c.post_id=? ORDER BY c.created_at,c.id LIMIT ?",(post_id,FORUM_COMMENT_LIMIT+1)).fetchall()
         if len(rows) > FORUM_COMMENT_LIMIT:
             raise HTTPException(409,"This thread exceeds the 1,000-comment display limit. Please contact an administrator.")
         return {**post,"comments":[public_forum_comment(row,user) for row in rows]}
@@ -857,6 +884,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 if not conn.execute("SELECT 1 FROM clubs WHERE id=?",(body.club_id,)).fetchone():
                     raise HTTPException(404,"Club not found")
                 conn.execute("INSERT INTO forum_posts(id,club_id,author_id,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?)",(post_id,body.club_id,user["id"],body.title,body.body,created_at,created_at))
+                messaging.notify_post(conn,post_id,body.club_id,user["id"])
                 post = public_forum_post(forum_post_row(conn,post_id),user)
         except store.IntegrityError:
             raise HTTPException(409,"The club or account changed. Refresh and try again.")
@@ -875,7 +903,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                 if count >= FORUM_COMMENT_LIMIT:
                     raise HTTPException(409,"This thread has reached its 1,000-comment limit. Start a new post.")
                 conn.execute("INSERT INTO forum_comments(id,post_id,author_id,body,created_at) VALUES (?,?,?,?,?)",(comment_id,post_id,user["id"],body.body,created_at))
-                row = conn.execute("SELECT c.*,u.display_name AS author_name,u.username AS author_username,u.profile_visibility AS author_visibility FROM forum_comments c JOIN users u ON u.id=c.author_id WHERE c.id=?",(comment_id,)).fetchone()
+                messaging.notify_comment(conn,post_id,comment_id,user["id"])
+                row = conn.execute(FORUM_COMMENT_SELECT + "WHERE c.id=?",(comment_id,)).fetchone()
                 comment = public_forum_comment(row,user)
         except store.IntegrityError:
             raise HTTPException(409,"The thread or account changed. Refresh and try again.")
@@ -1174,10 +1203,6 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
         return account(row)
 
-    def can_see_profile(viewer, row):
-        # Private profiles are for their owner only; shared ones for signed-in students.
-        return bool(viewer and row and (viewer["id"] == row["id"] or row["profile_visibility"] == "students"))
-
     @app.get("/api/users/{user_id}/avatar")
     def user_avatar(user_id: str, request: Request):
         viewer = optional_user(request)
@@ -1195,10 +1220,21 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
     @app.get("/api/users/{username}")
     def student(username: str, user=Depends(current_user)):
         with store.connect() as conn:
-            row = conn.execute("SELECT * FROM users WHERE username=?", (username.lower().lstrip("@")[:31],)).fetchone()
-        if not can_see_profile(user, row):
-            raise HTTPException(404, "This profile is private or doesn't exist")
-        return student_profile(row)
+            # Account ids (from a post, comment, or manager list) contain hyphens; usernames can't.
+            by_id = "-" in username
+            key = username[:100].replace("\x00", "")
+            row = conn.execute("SELECT * FROM users WHERE id=?", (key,)).fetchone() if by_id else conn.execute("SELECT * FROM users WHERE username=?", (key.lower().lstrip("@")[:31],)).fetchone()
+            shared = can_see_profile(user, row)
+            # A private username can't be looked up. An id is only known from something the
+            # student did publicly, and shows no more than that did: their name.
+            if not row or not (shared or by_id):
+                raise HTTPException(404, "This profile is private or doesn't exist")
+            clubs = [json.loads(r[0]) for r in conn.execute("SELECT c.payload FROM clubs c JOIN officers o ON o.club_id=c.id WHERE o.user_id=? ORDER BY c.id", (row["id"],))]
+            details = student_profile(row) if shared else {"id": row["id"], "display_name": row["display_name"], "username": None, "major": "", "grad_year": None, "campus": "", "bio": "", "interests": [], "avatar_url": None}
+            posts = conn.execute(FORUM_POST_SELECT + " WHERE p.author_id=? ORDER BY p.created_at DESC,p.id DESC LIMIT 5", (row["id"],)).fetchall() if shared else []
+            return {**details, "shared": shared, "is_self": row["id"] == user["id"], "can_message": messaging.can_message(conn, user["id"], row), "blocked": messaging.has_blocked(conn, user["id"], row["id"]),
+                    "managed_clubs": [{key: club.get(key) for key in ("id", "name", "category", "color", "logo_url")} for club in clubs],
+                    "posts": [{"id": r["id"], "title": r["title"], "club_name": json.loads(r["club_payload"])["name"], "created_at": r["created_at"]} for r in posts]}
 
     @app.get("/api/profile/summary")
     def profile_summary(user=Depends(current_user)):
@@ -1383,6 +1419,11 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             elif body.kind == "forum_comment":
                 if "\x00" in body.target_id or not conn.execute("SELECT 1 FROM forum_comments WHERE id=?",(body.target_id,)).fetchone():
                     raise HTTPException(404,"Forum comment not found")
+            elif body.kind == "conversation":
+                messaging.participant(conn,body.target_id,user["id"])
+            elif body.kind == "profile":
+                if "\x00" in body.target_id or not conn.execute("SELECT 1 FROM users WHERE id=?",(body.target_id,)).fetchone():
+                    raise HTTPException(404,"Student not found")
             else:
                 any_event(body.target_id) if body.kind == "event" else store.record("clubs",body.target_id)
             conn.execute("INSERT INTO reports VALUES (?,?,?,?,?,?)",(str(uuid.uuid4()),user["id"],body.kind,body.target_id,body.reason,now_iso()))
@@ -1395,7 +1436,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         clubs = [club for club in store.records("clubs") if user["role"] == "admin" or club["id"] in ids]
         return sorted(clubs, key=lambda club: (club["id"] not in ids, club["name"].casefold()))
 
-    def persist_event(event, creating=False):
+    def persist_event(event, creating=False, notice=None, actor_id=None):
         start = datetime.fromisoformat(event["starts_at"]).astimezone(timezone.utc).isoformat()
         try:
             with store.connect() as conn:
@@ -1403,6 +1444,8 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
                     conn.execute("INSERT INTO events VALUES (?,?,?,?,?)",(event["id"],event["club_id"],event["title"].strip().casefold(),start,json.dumps(event)))
                 else:
                     conn.execute("UPDATE events SET club_id=?,title_key=?,starts_at=?,payload=? WHERE id=?",(event["club_id"],event["title"].strip().casefold(),start,json.dumps(event),event["id"]))
+                if notice:
+                    messaging.notify_event(conn,event,notice,actor_id)
         except store.IntegrityError:
             raise HTTPException(409,"An event with the same club, title and start time already exists")
         return event
@@ -1413,7 +1456,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         officer_scope(user,body.club_id)
         event_id = str(uuid.uuid4())
         event = {**body.model_dump(mode="json"),"id":event_id,"club_name":club["name"],"source_url":f"/events/{event_id}","updated_at":now_iso(),"status":"scheduled","is_demo":bool(demo_mode)}
-        return persist_event(event,creating=True)
+        return persist_event(event,creating=True,notice="event_new",actor_id=user["id"])
 
     @app.patch("/api/officer/events/{event_id}")
     def update_event(event_id: str,body: EventPatch,user=Depends(officer)):
@@ -1430,7 +1473,9 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
         merged.update(validated)
         merged["club_name"] = store.record("clubs",merged["club_id"])["name"]
         merged["updated_at"] = now_iso()
-        return persist_event(merged)
+        changed = event["status"] != merged["status"]
+        notice = "event_cancelled" if changed and merged["status"] == "cancelled" else "event_back" if changed else "event_changed" if any(event.get(k) != merged.get(k) for k in ("starts_at","location")) else None
+        return persist_event(merged,notice=notice,actor_id=user["id"])
 
     @app.put("/api/officer/clubs/{club_id}")
     def update_club(club_id: str,body: ClubPatch,user=Depends(officer)):
@@ -1549,6 +1594,7 @@ def create_app(db_path=None, seed_path=None, demo_mode=None, live_sync=None, dat
             folded.append(chunk)
         return Response("\r\n".join(folded)+"\r\n",media_type="text/calendar",headers={"Content-Disposition":f'attachment; filename="event-{event_id}.ics"'})
 
+    messaging.register(app, store, current_user, optional_user, student_card)
     return app
 
 

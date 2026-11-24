@@ -696,3 +696,32 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .stamp-follow{left:18px;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent);transform:rotate(-8deg);opacity:clamp(0,var(--swipe),1)}
 .stamp-pass{right:18px;color:var(--label-2);box-shadow:inset 0 0 0 2px var(--label-3);transform:rotate(8deg);opacity:clamp(0,calc(var(--swipe) * -1),1)}
 
+/* ---------- People: managers, profile dialog, Inbox badge ---------- */
+.manager-badge{padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--label);font-size:var(--t-caption);font-weight:600;white-space:nowrap}
+.forum-author-link{width:auto;min-height:44px}
+.forum-author-link:hover span:last-child{text-decoration:none}
+.forum-author-link:hover .forum-author-name{text-decoration:underline}
+.club-tabs{display:flex;margin:18px 0}
+.club-tabs button{flex:1}
+.club-managers{margin-top:26px}
+.club-managers h3,.ask-managers h3{margin-bottom:10px}
+.club-managers ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;list-style:none;margin:0;padding:0}
+.manager-chip{gap:11px;min-height:56px;padding:8px 12px;border-radius:14px;background:var(--fill)}
+.manager-chip:hover{background:var(--fill-strong)}
+.manager-chip>span:last-child{display:flex;flex-direction:column;min-width:0}
+.manager-chip strong{overflow-wrap:anywhere}
+.manager-chip small{font-size:var(--t-footnote);color:var(--label-2)}
+.ask-managers{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.ask-managers h3{margin:0}
+.student-profile{align-items:stretch;gap:14px}
+.private-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:var(--label-2);font-size:var(--t-subhead)}
+.profile-safety{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;font-size:var(--t-footnote)}
+.student-profile .profile-group h3{margin-bottom:8px}
+.mini-posts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.mini-posts a{display:flex;flex-direction:column;padding:8px 0;min-height:44px}
+.mini-posts a:hover strong{text-decoration:underline}
+.mini-posts small{font-size:var(--t-footnote);color:var(--label-2)}
+.nav-item .unread-badge{margin-left:auto}
+.tab-bar button{position:relative}
+.tab-bar .unread-badge{position:absolute;top:3px;left:calc(50% + 5px);min-width:17px;height:17px;padding:0 4px;font-size:.625rem}
+.tab-bar button{letter-spacing:-.02em}

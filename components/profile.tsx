@@ -1,11 +1,13 @@
 'use client';
 import {useEffect, useRef, useState, type FormEvent} from 'react';
-import {Bookmark, CalendarDays, Camera, Check, ChevronRight, CircleHelp, Globe2, LoaderCircle, Lock, LogOut, MessageSquare, Pencil, ShieldCheck, Trash2, Users, X} from 'lucide-react';
-import {api, put, cleanName, relativeTime, CAMPUSES, INTERESTS, MAJORS, REFERENCE_DATE, type ActivityItem, type CampusEvent, type Club, type ProfileEvent, type ProfileSummary, type StudentProfile, type User} from '@/lib/api';
+import {Ban, Bookmark, CalendarDays, Camera, Check, ChevronRight, CircleHelp, Globe2, LoaderCircle, Lock, LogOut, MessageSquare, Pencil, ShieldCheck, Trash2, Users, X} from 'lucide-react';
+import {api, post, put, cleanName, relativeTime, CAMPUSES, INTERESTS, MAJORS, REFERENCE_DATE, type ActivityItem, type CampusEvent, type Club, type ClubRef, type ConversationThread, type ProfileEvent, type ProfileSummary, type StudentDetail, type User} from '@/lib/api';
 import {ErrorMessage, SubmitButton} from './account';
 import UserAvatar from './avatar';
 import Dialog from './dialog';
+import {ReportForm} from './detail-dialogs';
 import {EventRow} from './event-calendar';
+import {MessageComposer} from './inbox';
 import {ClubArt} from './visuals';
 
 export type ProfileTab = 'clubs' | 'events' | 'saved' | 'activity';
@@ -97,7 +99,7 @@ export function ProfilePage({user, managedClubs, tab, onTab, refreshKey, savedEv
   </div>;
 }
 
-function ClubRow({club, note, onOpen, action}: {club: Club; note: string; onOpen: () => void; action?: React.ReactNode}) {
+function ClubRow({club, note, onOpen, action}: {club: ClubRef; note: string; onOpen: () => void; action?: React.ReactNode}) {
   return <div className="club-row"><button className="club-row-main plain-button" onClick={onOpen}><ClubArt category={club.category} color={club.color} logo={club.logo_url}/><span className="club-row-text"><strong>{cleanName(club.name)}</strong><small>{note}</small></span><ChevronRight size={18} aria-hidden="true"/></button>{action}</div>;
 }
 
@@ -118,17 +120,17 @@ function AccountSettings({user, onLogout, onDeleted}: {user: User; onLogout: () 
   async function deleteAccount() {setLoading(true); setError(''); try {await api('/auth/me', {method: 'DELETE'}); onDeleted();} catch (e) {setError((e as Error).message); setLoading(false);}}
   return <section className="surface account-settings" aria-labelledby="account-heading">
     <h3 id="account-heading"><ShieldCheck size={18}/>Privacy and account</h3>
-    <p>{user.profile_visibility === 'students' ? 'Signed-in Rutgers students can open your profile from the forums. They see your name, username, photo, major, class year, campus, bio, and interests, never your email, goals, follows, or RSVPs.' : 'Your profile is private: only you can see it. Change this in Edit profile.'}</p>
+    <p>{user.profile_visibility === 'students' ? 'Signed-in Rutgers students can open your profile from your posts and comments. They see your name, username, photo, major, class year, campus, bio, interests, and recent posts, never your email, goals, follows, or RSVPs.' : 'Your profile is private: other students see only your name and any clubs you manage. Change this in Edit profile.'}</p>
     <p className="fine-print">Signed in as {user.email}. Your interests, major, goals, and follows shape suggestions. ClRUb is a student project, not an official Rutgers service. <a className="inline-link" href="/privacy">Privacy Policy</a></p>
     <div className="account-actions"><button className="button button-outline" onClick={onLogout}><LogOut size={16}/>Sign out</button><button className="delete-button" onClick={() => setDeleting(true)}><Trash2 size={15}/>Delete my account and data</button></div>
-    {deleting && <Dialog title="Delete your account?" onClose={() => setDeleting(false)}><p className="dialog-description">This permanently removes your profile, photo, preferences, follows, saved events, session, and forum posts and comments. Removing your posts also deletes other people’s replies to those posts. Type DELETE to confirm.</p><label className="form-stack">Confirmation<input value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="DELETE"/></label><ErrorMessage message={error}/><button className="button button-danger full-width" disabled={confirm !== 'DELETE' || loading} onClick={deleteAccount}>Permanently delete account</button></Dialog>}
+    {deleting && <Dialog title="Delete your account?" onClose={() => setDeleting(false)}><p className="dialog-description">This permanently removes your profile, photo, preferences, follows, saved events, session, messages, and forum posts and comments. Your direct conversations are removed for the other person too. Removing your posts also deletes other people’s replies to those posts. Type DELETE to confirm.</p><label className="form-stack">Confirmation<input value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="DELETE"/></label><ErrorMessage message={error}/><button className="button button-danger full-width" disabled={confirm !== 'DELETE' || loading} onClick={deleteAccount}>Permanently delete account</button></Dialog>}
   </section>;
 }
 
 export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User; onClose: () => void; onSaved: (user: User) => void; onPhoto: (user: User) => void}) {
   const [name, setName] = useState(user.display_name); const [username, setUsername] = useState(user.username ?? ''); const [bio, setBio] = useState(user.bio);
   const [major, setMajor] = useState(user.major); const [year, setYear] = useState(user.grad_year ? String(user.grad_year) : ''); const [campus, setCampus] = useState(user.campus);
-  const [interests, setInterests] = useState(user.interests); const [goals, setGoals] = useState(user.goals); const [visibility, setVisibility] = useState(user.profile_visibility);
+  const [interests, setInterests] = useState(user.interests); const [goals, setGoals] = useState(user.goals); const [visibility, setVisibility] = useState(user.profile_visibility); const [messages, setMessages] = useState(user.message_access);
   const [photo, setPhoto] = useState(user.avatar_url); const [photoBusy, setPhotoBusy] = useState(false); const [photoError, setPhotoError] = useState('');
   const [loading, setLoading] = useState(false); const [error, setError] = useState('');
   const handle = username.trim().toLowerCase().replace(/^@/, '');
@@ -157,7 +159,7 @@ export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User
     if (usernameError || nameError) return;
     setLoading(true);
     try {
-      onSaved(await put<User>('/profile', {display_name: name.trim(), username: handle, bio: bio.trim(), major: major.trim(), grad_year: year ? Number(year) : 0, campus, interests, goals, profile_visibility: visibility, onboarded: true}));
+      onSaved(await put<User>('/profile', {display_name: name.trim(), username: handle, bio: bio.trim(), major: major.trim(), grad_year: year ? Number(year) : 0, campus, interests, goals, profile_visibility: visibility, message_access: messages, onboarded: true}));
     } catch (e) {setError((e as Error).message);} finally {setLoading(false);}
   }
 
@@ -181,8 +183,12 @@ export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User
       <fieldset><legend>Interests</legend><div className="interest-picker">{INTERESTS.map(interest => <button key={interest} type="button" className={`interest-option ${interests.includes(interest) ? 'chosen' : ''}`} aria-pressed={interests.includes(interest)} onClick={() => setInterests(interests.includes(interest) ? interests.filter(i => i !== interest) : [...interests, interest])}>{interest}{interests.includes(interest) && <Check size={13}/>}</button>)}</div></fieldset>
       <label>Campus goals <span className="label-note">(private, used only for suggestions)</span><textarea value={goals} onChange={e => setGoals(e.target.value)} rows={2} maxLength={1000} placeholder="What are you hoping to find?"/></label>
       <fieldset className="visibility-choice"><legend>Who can see your profile</legend>
-        <label className={`choice ${visibility === 'private' ? 'chosen' : ''}`}><input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')}/><Lock size={16}/><span><strong>Only me</strong><small>Nobody else can open your profile.</small></span></label>
-        <label className={`choice ${visibility === 'students' ? 'chosen' : ''}`}><input type="radio" name="visibility" checked={visibility === 'students'} onChange={() => setVisibility('students')}/><Globe2 size={16}/><span><strong>Signed-in Rutgers students</strong><small>From your forum posts. Never your email, goals, follows, or RSVPs.</small></span></label>
+        <label className={`choice ${visibility === 'private' ? 'chosen' : ''}`}><input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')}/><Lock size={16}/><span><strong>Only me</strong><small>Others see just your name, plus any clubs you manage.</small></span></label>
+        <label className={`choice ${visibility === 'students' ? 'chosen' : ''}`}><input type="radio" name="visibility" checked={visibility === 'students'} onChange={() => setVisibility('students')}/><Globe2 size={16}/><span><strong>Signed-in Rutgers students</strong><small>Never your email, goals, follows, or RSVPs.</small></span></label>
+      </fieldset>
+      <fieldset className="visibility-choice"><legend>Who can message you</legend>
+        <label className={`choice ${messages === 'students' ? 'chosen' : ''}`}><input type="radio" name="message-access" checked={messages === 'students'} onChange={() => setMessages('students')}/><MessageSquare size={16}/><span><strong>Signed-in Rutgers students</strong><small>One message each until you reply. You can block anyone.</small></span></label>
+        <label className={`choice ${messages === 'none' ? 'chosen' : ''}`}><input type="radio" name="message-access" checked={messages === 'none'} onChange={() => setMessages('none')}/><Ban size={16}/><span><strong>Nobody new</strong><small>Only people you’ve messaged can reply to you. Questions to clubs you manage still arrive.</small></span></label>
       </fieldset>
       <ErrorMessage message={error}/>
       <div className="form-actions dialog-actions"><button className="button button-outline" type="button" onClick={onClose}>Cancel</button><SubmitButton loading={loading}>Save profile</SubmitButton></div>
@@ -190,18 +196,40 @@ export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User
   </Dialog>;
 }
 
-/** Another student's profile, opened from a forum post. */
-export function StudentProfileDialog({username, onClose}: {username: string; onClose: () => void}) {
-  const [person, setPerson] = useState<StudentProfile | null>(null); const [error, setError] = useState('');
-  useEffect(() => {api<StudentProfile>(`/users/${encodeURIComponent(username)}`).then(setPerson).catch(e => setError((e as Error).message));}, [username]);
-  return <Dialog title={person ? person.display_name : 'Student profile'} onClose={onClose}>
-    {error ? <p className="form-error" role="alert">{error}</p> : !person ? <div className="loading-state" role="status"><LoaderCircle className="spin" size={22}/>Loading…</div> : <div className="student-profile">
-      <UserAvatar name={person.display_name} url={person.avatar_url} size={72}/>
-      <p className="profile-handle">@{person.username}</p>
-      {profileLine(person) && <p className="profile-line">{profileLine(person)}</p>}
+/** A student's profile, opened from a post, comment, manager list, or message. `who` is their id or username. */
+export function StudentProfileDialog({who, onClose, onOpenClub, onOpenConversation, onOwnProfile}: {who: string; onClose: () => void; onOpenClub: (id: string) => void; onOpenConversation: (id: string) => void; onOwnProfile: () => void}) {
+  const [person, setPerson] = useState<StudentDetail | null>(null); const [error, setError] = useState(''); const [composing, setComposing] = useState(false); const [confirmBlock, setConfirmBlock] = useState(false); const [busy, setBusy] = useState(false);
+  useEffect(() => {api<StudentDetail>(`/users/${encodeURIComponent(who)}`).then(setPerson).catch(e => setError((e as Error).message));}, [who]);
+  async function send(body: string) {
+    if (!person) return;
+    const thread = await post<ConversationThread>('/conversations/direct', {user_id: person.id, body});
+    onOpenConversation(thread.id);
+  }
+  async function setBlock(blocked: boolean) {
+    if (!person) return; setBusy(true); setError('');
+    try {
+      await api(`/users/${encodeURIComponent(person.id)}/block`, {method: blocked ? 'PUT' : 'DELETE'});
+      setPerson(await api<StudentDetail>(`/users/${encodeURIComponent(who)}`)); setConfirmBlock(false); setComposing(false);
+    } catch (e) {setError((e as Error).message);} finally {setBusy(false);}
+  }
+  const first = person?.display_name.split(' ')[0];
+  return <Dialog title="Student profile" onClose={onClose}>
+    {!person ? (error ? <p className="form-error" role="alert">{error}</p> : <div className="loading-state" role="status"><LoaderCircle className="spin" size={22}/>Loading…</div>) : <div className="student-profile">
+      <div className="profile-identity"><UserAvatar name={person.display_name} url={person.avatar_url} size={72}/><div className="profile-names"><h2>{person.display_name}</h2>{person.username && <p className="profile-handle">@{person.username}</p>}{profileLine(person) && <p className="profile-line">{profileLine(person)}</p>}</div></div>
+      {!person.shared && <p className="private-note"><Lock size={14}/>{first}’s profile is private.</p>}
       {person.bio && <p className="profile-bio">{person.bio}</p>}
       {person.interests.length > 0 && <ul className="profile-tags" aria-label="Interests">{person.interests.map(i => <li key={i}>{i}</li>)}</ul>}
-      <p className="fine-print">{person.display_name.split(' ')[0]} shares this profile with signed-in Rutgers students.</p>
+      {person.managed_clubs.length > 0 && <div className="profile-group"><h3>Manages</h3><div className="club-rows">{person.managed_clubs.map(club => <ClubRow key={club.id} club={club} note="Club manager" onOpen={() => onOpenClub(club.id)}/>)}</div></div>}
+      {person.posts.length > 0 && <div className="profile-group"><h3>Recent posts</h3><ul className="mini-posts">{person.posts.map(item => <li key={item.id}><a href={`/forums/${encodeURIComponent(item.id)}`}><strong>{item.title}</strong><small>{cleanName(item.club_name)} · {relativeTime(item.created_at)}</small></a></li>)}</ul></div>}
+      <ErrorMessage message={error}/>
+      {person.is_self ? <button className="button button-secondary" onClick={onOwnProfile}><Pencil size={16}/>Open my profile</button>
+        : <>
+          {person.blocked ? <p className="private-note">You blocked {first}. <button className="inline-link" disabled={busy} onClick={() => void setBlock(false)}>Unblock</button></p>
+            : person.can_message ? composing ? <MessageComposer label={`Message ${person.display_name}`} placeholder={`Message ${first}`} onSend={send} autoFocus/> : <button className="button button-primary" onClick={() => setComposing(true)}><MessageSquare size={16}/>Message</button>
+            : <p className="private-note">{first} isn’t accepting messages from you.</p>}
+          {composing && <p className="fine-print">You can send one message until they reply.</p>}
+          <div className="profile-safety">{!person.blocked && (confirmBlock ? <><span>Block {first}? Neither of you will be able to message the other.</span><button className="text-button" disabled={busy} onClick={() => void setBlock(true)}>Block</button><button className="text-button muted" onClick={() => setConfirmBlock(false)}>Cancel</button></> : <button className="text-button muted" onClick={() => setConfirmBlock(true)}><Ban size={13}/>Block</button>)}<ReportForm kind="profile" id={person.id}/></div>
+        </>}
     </div>}
   </Dialog>;
 }

@@ -73,12 +73,22 @@ A bare NetID means `NetID@scarletmail.rutgers.edu`. Owners who haven't signed in
 
 ## Profiles and the home dashboard
 
-The navigation is **Home · Discover · Events · Social · Profile** (Social is the forums; the old Saved page is now a tab on Profile).
+The navigation is **Home · Discover · Events · Social · Inbox · Profile** (Social is the forums; the old Saved page is now a tab on Profile).
 
 - **Profile** shows a photo, name, @username, major, class year, campus, bio, and interests, with counts that come straight from the student's records: clubs followed, events marked "Going", saved items, and forum posts. Tabs list followed clubs (and clubs they own), upcoming and past events with RSVP status, saved clubs and events, and forum activity. **Edit profile** changes every field, the photo (PNG, JPEG, or WebP up to 1 MB, checked by its bytes and served sandboxed), and who can see the profile.
-- **Visibility** is private by default. A student can choose to share their profile with signed-in Rutgers students, who can then open it from their forum posts. Others never see an email, goals, follows, or RSVPs.
+- **Visibility** is private by default. Signed-in students can open anyone's profile from a post, comment, club manager list, or message; a private one shows only the name and managed clubs. A student can choose to share the rest. Others never see an email, goals, follows, or RSVPs.
 - **Home** greets signed-in students and shows their upcoming RSVPs and saved events, announcements (forum posts by the owners of clubs they follow), recommended clubs with the reason for each, live Rutgers events that match their interests, and quick links.
 - **There is no friends or connections feature**, and "events going" counts RSVPs, not confirmed attendance; the app has no check-in. Recommendations come from the club graph; nothing is a trained model and no match percentages are shown.
+
+## Messages, club questions, and notifications
+
+Everything here is in `backend/messaging.py`, shown in the **Inbox** tab, and needs sign-in.
+
+- **Direct messages.** The first message to someone is limited to one until they reply. Students can turn off new messages in Edit profile, block someone, or report a conversation. Starting more than 20 conversations in a day is refused.
+- **Ask about this club.** A tab on each club page sends a question to every current manager; any of them can reply. Former managers lose access. Clubs with no manager on ClRUb can't receive questions. The automatic, source-quoting assistant is on the same tab as "Quick answers".
+- **Club managers** are listed on the club page by display name for signed-in students (guests see a count).
+- **Notifications** cover comments on your posts, replies in discussions you joined, announcements and new events from clubs you follow, and changes to events you saved or RSVP'd to.
+- Unread counts are polled every minute and an open conversation every 10 seconds; there are no push or email notifications. Messages aren't end-to-end encrypted. There is no admin screen for reports yet: they are rows in the `reports` table.
 
 ## Discover modes and the club graph
 

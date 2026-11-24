@@ -34,10 +34,33 @@ export type User = {
   username: string | null; grad_year: number | null; bio: string;
   /** private: only you. students: other signed-in students can open your profile (never your email or goals). */
   profile_visibility: 'private' | 'students';
+  /** Who may start a direct message with you. People you wrote to can always answer. */
+  message_access: 'students' | 'none';
   avatar_url: string | null;
 };
 /** Another student's profile, as they chose to share it. */
 export type StudentProfile = Pick<User, 'id' | 'display_name' | 'username' | 'major' | 'grad_year' | 'campus' | 'bio' | 'interests' | 'avatar_url'>;
+/** Short form used in lists. A private profile shows only the name. */
+export type StudentCard = {id: string; display_name: string; shared: boolean; username: string | null; avatar_url: string | null};
+export type ClubRef = Pick<Club, 'id' | 'name' | 'category' | 'color' | 'logo_url'>;
+/** A student's profile dialog. When `shared` is false, only the name and managed clubs are filled in. */
+export type StudentDetail = StudentProfile & {shared: boolean; is_self: boolean; can_message: boolean; blocked: boolean; managed_clubs: ClubRef[]; posts: {id: string; title: string; club_name: string; created_at: string}[]};
+/** Names are only sent to signed-in students; guests get the count. */
+export type ClubManagers = {count: number; managers: StudentCard[]; is_manager: boolean; conversation_id: string | null};
+export type Unread = {messages: number; notifications: number};
+export type Conversation = {
+  id: string; kind: 'direct' | 'club';
+  /** 'club' when you are answering as one of the club's managers. */
+  side: 'student' | 'club';
+  title: string; person: StudentCard | null; club: ClubRef | null; last_message: string; last_is_mine: boolean; last_message_at: string;
+  unread: number; needs_reply: boolean; request: boolean; awaiting_reply: boolean;
+};
+export type ConversationThread = Conversation & {can_reply: boolean; reply_note: string; blocked_by_me: boolean; messages: {id: string; body: string; created_at: string; mine: boolean; as_club: boolean; author_id: string; author_name: string}[]};
+export type Notification = {
+  id: string; kind: 'comment' | 'reply' | 'announcement' | 'event_new' | 'event_changed' | 'event_cancelled' | 'event_back'; created_at: string; read: boolean;
+  actor_id: string | null; actor_name: string | null; club_id: string | null; club_name: string; post_id: string | null; event_id: string | null; title: string; excerpt: string;
+};
+export type Inbox = {conversations: Conversation[]; notifications: Notification[]; unread: Unread};
 export type ProfileEvent = CampusEvent & {rsvp: 'going' | 'interested' | null; saved: boolean};
 export type ActivityItem = {kind: 'post' | 'comment'; id: string; post_id: string; title: string; club_id: string; club_name: string; created_at: string; comment_count?: number; excerpt?: string};
 /** The signed-in student's own profile page. Counts come straight from their records. */
@@ -55,6 +78,10 @@ export type ForumPost = {
   author_name: string;
   /** Set only when the author shares their profile with signed-in students. */
   author_username?: string | null;
+  /** Present only for signed-in viewers, who can open the author's profile. */
+  author_id?: string;
+  author_avatar_url?: string | null;
+  author_is_manager?: boolean;
   created_at: string;
   updated_at: string;
   comment_count: number;
@@ -66,6 +93,10 @@ export type ForumComment = {
   body: string;
   author_name: string;
   author_username?: string | null;
+  /** Present only for signed-in viewers, who can open the author's profile. */
+  author_id?: string;
+  author_avatar_url?: string | null;
+  author_is_manager?: boolean;
   created_at: string;
   can_delete: boolean;
 };

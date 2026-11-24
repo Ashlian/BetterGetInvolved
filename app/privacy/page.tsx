@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 // Set NEXT_PUBLIC_SUPPORT_EMAIL in Vercel (and .env locally); the address isn't kept in the code.
 const CONTACT = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || '';
-const UPDATED = 'November 21, 2026';
+const UPDATED = 'November 24, 2026';
 
 export default function PrivacyPage() {
   return <main className="legal-page">
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
         <h3>What you add</h3>
         <ul>
           <li><strong>Profile:</strong> display name, optional username, bio, major, class year, home campus, interests, and profile photo, plus your “campus goals” text, which is used only for suggestions and never shown to others.</li>
-          <li><strong>Activity:</strong> clubs you follow, save for later, or pass on; events you save or RSVP to; forum posts and comments; and reports you submit about content.</li>
+          <li><strong>Activity:</strong> clubs you follow, save for later, or pass on; events you save or RSVP to; forum posts and comments; direct messages and questions to clubs; students you block; and reports you submit about content.</li>
           <li><strong>Club owners:</strong> edits to the clubs you manage, including logos and events.</li>
         </ul>
         <h3>Collected automatically</h3>
@@ -63,8 +63,11 @@ export default function PrivacyPage() {
         <h2>Who can see what</h2>
         <ul>
           <li><strong>Forum posts and comments</strong> are public and show your display name.</li>
-          <li><strong>Your profile</strong> is private by default. If you set it to “Signed-in Rutgers students”, other signed-in students can see your name, username, photo, major, class year, campus, bio, and interests. They never see your email, goals, follows, saves, or RSVPs.</li>
-          <li><strong>Club owners</strong> see totals only: how many people follow their club and save or RSVP to its events, never who.</li>
+          <li><strong>Your profile</strong> is private by default: signed-in students who open it from your posts or messages see only your display name and any clubs you manage. If you set it to “Signed-in Rutgers students”, other signed-in students can see your name, username, photo, major, class year, campus, bio, interests, and recent forum posts. They never see your email, goals, follows, saves, or RSVPs.</li>
+          <li><strong>Club managers</strong> are listed by display name on their club’s page for signed-in students.</li>
+        <li><strong>Direct messages</strong> can be read by the two people in the conversation. <strong>Questions to a club</strong>, with your display name, can be read by everyone who manages that club now or later. Messages are stored in the app’s database and are not end-to-end encrypted; ClRUb’s operators could access them, for example to look into a report.</li>
+        <li><strong>Notifications</strong> about comments, announcements, and events are visible only to you.</li>
+        <li><strong>Club owners</strong> see totals only: how many people follow their club and save or RSVP to its events, never who.</li>
           <li><strong>“Followed together” links</strong> between clubs are only created when at least three people follow both clubs, so no individual’s follows can be worked out.</li>
         </ul>
       </section>
@@ -83,13 +86,13 @@ export default function PrivacyPage() {
 
       <section>
         <h2>Keeping and deleting your data</h2>
-        <p>Your data is kept while your account exists. To delete it, go to <strong>Profile → Privacy and account → Delete my account and data</strong>. That permanently removes your profile, photo, preferences, follows, saves, RSVPs, sign-in sessions, and forum posts and comments. Deleting a post also removes other people’s replies to it. Copies may remain in routine database backups for a short time before they are overwritten.</p>
-        <p>You can also edit or clear any profile field, remove your photo, and make your profile private again at any time.</p>
+        <p>Your data is kept while your account exists. To delete it, go to <strong>Profile → Privacy and account → Delete my account and data</strong>. That permanently removes your profile, photo, preferences, follows, saves, RSVPs, sign-in sessions, messages, notifications, and forum posts and comments. Your direct conversations, and questions you asked clubs, are removed for everyone in them. Deleting a post also removes other people’s replies to it. Copies may remain in routine database backups for a short time before they are overwritten.</p>
+        <p>You can also edit or clear any profile field, remove your photo, make your profile private again, or stop new people from messaging you at any time.</p>
       </section>
 
       <section>
         <h2>Security</h2>
-        <p>Connections use HTTPS. Sign-in cookies can’t be read by scripts, uploaded images are checked and served in a restricted way, and the database is reachable only by the app’s server. No system is perfectly secure, so please don’t post sensitive personal information in forums or profiles.</p>
+        <p>Connections use HTTPS. Sign-in cookies can’t be read by scripts, uploaded images are checked and served in a restricted way, and the database is reachable only by the app’s server. No system is perfectly secure, so please don’t share sensitive personal information in forums, messages, or profiles.</p>
       </section>
 
       <section>

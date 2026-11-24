@@ -1,0 +1,55 @@
+/* Inbox: conversations, threads, notifications. Also the composer used on profiles and club pages. */
+.unread-badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:var(--t-caption);font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+.inbox-error{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.inbox-layout{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:16px;align-items:start}
+.inbox-layout>section+section{margin-top:0}
+.inbox-layout:not(.has-thread) .conversation-list:only-child{grid-column:1/-1}
+.conversation-list{overflow:hidden}
+.conversation-list ul,.notification-list{list-style:none;margin:0;padding:0}
+.conversation-list li+li{border-top:.5px solid var(--separator)}
+.conversation-row{gap:12px;padding:12px 14px;min-height:64px;align-items:flex-start}
+.conversation-row:hover{background:var(--fill)}
+.conversation-row.selected{background:var(--accent-soft)}
+.conversation-row:focus-visible,.notification-row:focus-visible{outline-offset:-3px}
+.conversation-copy{flex:1;min-width:0;display:flex;flex-direction:column}
+.conversation-top{display:flex;align-items:baseline;gap:8px}
+.conversation-top strong{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conversation-top time{font-size:var(--t-caption);color:var(--label-2);white-space:nowrap}
+.conversation-context{font-size:var(--t-caption);color:var(--label-2)}
+.conversation-preview{font-size:var(--t-footnote);color:var(--label-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conversation-row.unread .conversation-preview{color:var(--label);font-weight:600}
+.conversation-row>.unread-badge{align-self:center}
+.conversation-flag{align-self:flex-start;margin-top:4px;padding:1px 8px;border-radius:999px;background:var(--warning-soft);color:var(--warning);font-size:var(--t-caption);font-weight:600}
+.thread{display:flex;flex-direction:column;gap:12px;padding:14px 16px;min-width:0}
+.thread-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:260px;color:var(--label-2)}
+.thread-header{display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:.5px solid var(--separator)}
+.thread-person{gap:12px;min-height:44px;border-radius:12px}
+.thread-person>span:last-child{display:flex;flex-direction:column;min-width:0}
+.thread-person strong{overflow-wrap:anywhere}
+.thread-person small{font-size:var(--t-footnote);color:var(--label-2)}
+.thread-back{display:none}
+.thread-messages{display:flex;flex-direction:column;gap:8px;max-height:min(52vh,520px);min-height:160px;overflow-y:auto;overscroll-behavior:contain;padding:4px}
+.thread-day{margin:8px 0;text-align:center;font-size:var(--t-caption);color:var(--label-2)}
+.bubble-row{display:flex}
+.bubble-row.mine{justify-content:flex-end}
+.bubble{max-width:min(82%,520px);padding:9px 13px;border-radius:18px 18px 18px 6px;background:var(--fill)}
+.mine .bubble{border-radius:18px 18px 6px 18px;background:var(--accent-soft)}
+.bubble p{white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble time{display:block;margin-top:2px;font-size:var(--t-caption);color:var(--label-2)}
+.bubble-author{display:block;font-size:var(--t-caption);font-weight:600;color:var(--label-2)}
+.thread-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;background:var(--fill);font-size:var(--t-footnote);color:var(--label-2)}
+.message-composer{display:flex;flex-direction:column;gap:8px;width:100%}
+.message-composer textarea{width:100%;min-height:64px;padding:11px 14px;border:0;border-radius:14px;background:var(--fill);resize:vertical;outline:none}
+.message-composer textarea:focus{box-shadow:0 0 0 3px var(--accent-soft),inset 0 0 0 1px var(--accent)}
+.message-composer textarea::placeholder{color:var(--label-3)}
+.composer-row{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.notification-bar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.notification-list{overflow:hidden}
+.notification-list li+li{border-top:.5px solid var(--separator)}
+.notification-row{width:100%;text-align:left}
+.notification-row.unread{background:var(--accent-soft)}
+@media (max-width:860px){
+  .inbox-layout,.inbox-layout.has-thread{grid-template-columns:minmax(0,1fr)}
+  .inbox-layout.has-thread .conversation-list,.thread-placeholder{display:none}
+  .thread-back{display:inline-flex}
+}

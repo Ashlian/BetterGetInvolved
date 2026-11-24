@@ -37,7 +37,7 @@ def test_forum_create_public_read_current_names_and_private_fields(api):
     assert client.get("/api/forums").json() == []
     user = login(client)
     created = post(client,title="  New project  ",body="  First line\nSecond line <b>plain text</b>  ")
-    assert set(created) == {"id","club_id","club_name","title","body","author_name","author_username","created_at","updated_at","comment_count","can_delete"}
+    assert set(created) == {"id","club_id","club_name","title","body","author_name","author_username","author_id","author_avatar_url","author_is_manager","created_at","updated_at","comment_count","can_delete"}
     # Profiles start private, so no handle is shown even though the author is signed in.
     assert created["author_username"] is None
     assert created["title"] == "New project"
@@ -47,7 +47,7 @@ def test_forum_create_public_read_current_names_and_private_fields(api):
     assert datetime.fromisoformat(created["created_at"]).utcoffset() == timedelta(0)
     assert client.put("/api/profile",json={"display_name":"Changed Public Name"}).status_code == 200
     reply = comment(client,created["id"],"  A plain-text reply  ")
-    assert set(reply) == {"id","post_id","body","author_name","author_username","created_at","can_delete"}
+    assert set(reply) == {"id","post_id","body","author_name","author_username","author_id","author_avatar_url","author_is_manager","created_at","can_delete"}
     assert reply["body"] == "A plain-text reply"
     assert reply["author_name"] == "Changed Public Name"
     client.cookies.clear()
