@@ -3,6 +3,7 @@ import {useEffect, useRef, useState, type FormEvent} from 'react';
 import {Check, LoaderCircle, ShieldCheck} from 'lucide-react';
 import {api, post, put, CAMPUSES, INTERESTS, MAJORS, type AuthConfig, type User} from '@/lib/api';
 import Dialog from './dialog';
+import {categoryIcon} from './visuals';
 
 export function ErrorMessage({message}: {message: string}) {return message ? <p className="form-error" role="alert">{message}</p> : null;}
 export function SubmitButton({loading, children, className = 'button button-primary'}: {loading: boolean; children: React.ReactNode; className?: string}) {return <button className={className} type="submit" disabled={loading}>{loading ? <><LoaderCircle className="spin" size={17}/>Working…</> : children}</button>;}
@@ -86,7 +87,16 @@ export function OnboardingDialog({user, onClose, onSave}: {user: User; onClose: 
   }
   return <Dialog title={user.onboarded ? 'Choose your interests' : `Welcome, ${user.display_name.split(' ')[0]}`} onClose={onClose}><p className="dialog-description">Tell us your major and what you’re into, and suggestions start from there. Everything is optional, and you can change it later in Profile.</p><form className="form-stack" onSubmit={submit}>
     <MajorField value={major} onChange={setMajor}/>
-    <fieldset><legend>What are you curious about?</legend><div className="interest-picker">{INTERESTS.map(interest => <button key={interest} className={`interest-option ${interests.includes(interest) ? 'chosen' : ''}`} type="button" aria-pressed={interests.includes(interest)} onClick={() => setInterests(interests.includes(interest) ? interests.filter(i => i !== interest) : [...interests, interest])}>{interests.includes(interest) && <Check size={13}/>} {interest}</button>)}</div></fieldset>
+    <fieldset><legend>What are you curious about?</legend>
+      <div className="interest-picker editorial-interest-picker">{[...new Set([...INTERESTS, ...user.interests])].map(interest => {
+        const Icon = categoryIcon(interest);
+        const chosen = interests.includes(interest);
+        return <button key={interest} className={`interest-option ${chosen ? 'chosen' : ''}`} type="button" aria-pressed={chosen}
+          onClick={() => setInterests(current => current.includes(interest) ? current.filter(item => item !== interest) : [...current, interest])}>
+          <Icon size={18} aria-hidden="true"/><span>{interest}</span>{chosen && <Check size={14} aria-hidden="true"/>}
+        </button>;
+      })}</div>
+    </fieldset>
     <label>Home campus<select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select></label>
     <label>What would you like to get out of campus life?<textarea value={goals} onChange={e => setGoals(e.target.value)} maxLength={1000} placeholder="Meet people, try something creative, build a robot…" rows={3}/></label><ErrorMessage message={error}/><SubmitButton loading={loading}>Save interests</SubmitButton><button className="text-button centered" type="button" onClick={onClose}>Skip for now</button>
   </form></Dialog>;

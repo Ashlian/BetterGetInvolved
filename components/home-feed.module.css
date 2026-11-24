@@ -1,0 +1,79 @@
+.hero {display:grid;grid-template-columns:1.03fr 1fr;min-height:440px;background:#a9002d;color:#fff6ee;overflow:hidden;border-radius:5px 30px 5px 5px}
+.heroCopy {padding:clamp(20px,4vw,56px);align-self:center;min-width:0}
+.heroGreeting {font-size:.82rem;font-weight:740;letter-spacing:.11em;text-transform:uppercase;margin-bottom:13px;color:#ffdfdf}
+.hero h1 {font:500 clamp(3.1rem,6.7vw,6.6rem)/.91 Georgia,serif;letter-spacing:-.074em;margin:0 0 17px}
+.hero h1 em {color:#ffd0db}
+.hero h1 + p {font-size:clamp(.95rem,1.9vw,1.125rem);max-width:32ch}
+.heroButton {display:inline-flex;gap:8px;align-items:center;background:#fff4e8;color:#760021;font-weight:760;min-height:46px;padding:0 15px;border-radius:99px;margin:17px 0}
+.heroButton:hover {background:#ffdbe4}
+.search {display:flex;gap:8px;align-items:center;background:#780021;color:#ffe2e8;padding:4px 4px 4px 11px;border:1px solid #ffd4e787;border-radius:7px}
+.search input {width:100%;min-width:0;min-height:44px;border:0;background:transparent;color:#fff7f6}
+.search input::placeholder {color:#f6c8d5}
+.search button {min-height:44px;background:#fff3ed;color:#780021;padding:0 10px;border-radius:4px;font-weight:700}
+.hero :focus-visible, .interests :focus-visible {outline-color:#ffc085}
+.photo {margin:0;position:relative;display:grid;align-items:end;background:linear-gradient(0deg,#210a16b0,transparent 43%),url('/rutgers-old-queens.jpg') 53% center/cover;min-height:220px;isolation:isolate}
+.photo figcaption {display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:17px 22px;color:#fff5eb;font:italic 1.5rem Georgia,serif}
+.photo figcaption span {font:650 .72rem var(--font);letter-spacing:.1em;text-transform:uppercase}
+
+.feed {display:grid;gap:clamp(27px,5vw,62px);padding-top:clamp(25px,5vw,55px);color:#29121c}
+.feed section {min-width:0}
+.sectionHeader {display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:4px 15px;margin-bottom:12px;border-bottom:1px solid #eddbe0}
+.sectionHeader h2,.interests h2 {font:500 clamp(2rem,4vw,3.4rem)/1 Georgia,serif;letter-spacing:-.055em;padding-bottom:7px}
+.sectionHeader button {min-height:44px;display:flex;align-items:center;gap:7px;color:#9a0833;font-size:.875rem;font-weight:710}
+.sectionHeader button:hover,.edit:hover {text-decoration:underline;text-underline-offset:3px}
+.selection {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:14px}
+.selection[data-solo="true"] {grid-template-columns:1fr}
+.rail {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(200px,52%);overflow-x:auto;scroll-snap-type:x proximity;gap:10px;padding-bottom:5px}
+.rail > * {scroll-snap-align:start}
+.club {position:relative;min-width:0;display:flex;flex-direction:column;background:#f9f0ea;border:1px solid #eddece;border-radius:5px;overflow:hidden;animation:settle .35s both}
+.rail .club:nth-child(2){animation-delay:.045s}.rail .club:nth-child(3){animation-delay:.09s}
+@keyframes settle {from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.clubOpen {display:flex;flex-direction:column;min-width:0;text-align:left;width:100%}
+.clubArt {min-height:105px;width:100%;display:grid;place-items:center;overflow:hidden;background:color-mix(in srgb,var(--club-ink) 20%,#f8e4d7)}
+.clubArt :global(.club-tile) {transition:transform .25s ease;box-shadow:0 8px 22px #32132826}
+.clubOpen:hover .clubArt :global(.club-tile) {transform:rotate(-5deg) scale(1.07)}
+.clubArt :global(.club-logo) {object-fit:contain}
+.clubCopy {display:grid;justify-items:start;align-content:center;gap:5px;padding:12px;min-width:0}
+.clubCopy > strong {font:600 clamp(1.18rem,2.1vw,1.55rem)/1.04 Georgia,serif;overflow-wrap:anywhere}
+.clubCategory {text-transform:uppercase;color:#820a2d;letter-spacing:.075em;font-size:.72rem;font-weight:750}
+.club[data-featured="true"] .clubOpen {display:grid;grid-template-columns:minmax(80px,.56fr) minmax(0,1fr);flex:1;align-items:stretch}
+.club[data-featured="true"] .clubCopy {padding:clamp(10px,2.5vw,20px)}
+.club[data-featured="true"] .clubCopy > strong {font-size:clamp(1.45rem,3vw,2.5rem)}
+.description {font-size:.88rem;color:#634854;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.why {margin:8px 10px 0;padding:8px 10px;border-left:3px solid #c13461;background:#fae2eb;color:#62253a;font-size:.83rem;display:grid;gap:2px}
+.cardActions {display:flex;justify-content:end;margin-top:auto;padding:0 5px}
+.cardActions button {color:#901330}
+.collectionStatus {display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:#674b57;background:#fbf3ef;padding:12px 15px;border-left:3px solid #e4bbc8}
+
+.interests {display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:15px 30px;align-items:center;background:#29101d;color:#fff1e8;padding:clamp(16px,4vw,42px);border-radius:5px 5px 27px 5px}
+.interests h2 {color:#ffd3de}
+.interests p {max-width:39ch;font-size:.95rem}
+.edit {display:inline-flex;min-height:44px;gap:6px;align-items:center;font-weight:700;font-size:.88rem;color:#ffc8d7}
+.interestTiles {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.interestTiles button {display:flex;align-items:center;gap:6px;min-height:55px;padding:8px;text-align:left;background:#fbd9df;color:#571030;border-radius:4px;font-size:.84rem;font-weight:690;overflow-wrap:anywhere;transition:transform .16s}
+.interestTiles button:nth-child(3n + 2) {background:#f3dbb8;color:#4d2b17}
+.interestTiles button:nth-child(3n) {background:#eaddeb;color:#49304e}
+.interestTiles button:hover {transform:translateY(-3px)}
+.communities,.announcements {list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.communities {grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.communities button {display:flex;align-items:center;gap:9px;text-align:left;width:100%;padding:6px;border:1px solid #eedadd;border-radius:4px}
+.communities button > span:last-child,.announcements a {display:grid;gap:3px}
+.communities small,.announcements small {color:#795563}
+.campus {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:22px}
+.eventList {border:1px solid #eddbe0;background:#fffbf8}
+.announcements a {border-left:2px solid #ce4e70;padding:8px 12px;background:#fbf1ed}
+.announcements a:hover {background:#f8e2e9}
+.announcements a > span {overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+@media(max-width:760px) {
+  .hero {grid-template-columns:1fr;min-height:0}
+  .hero h1 {font-size:clamp(3rem,12vw,5rem)}
+  .photo {min-height:clamp(158px,39vw,235px);background-position:center 46%}
+  .selection,.interests {grid-template-columns:1fr}
+  .rail {grid-auto-columns:minmax(180px,57%)}
+  .interestTiles {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce) {
+  .club {animation:none}
+  .clubArt :global(.club-tile),.interestTiles button {transition:none}
+  .clubOpen:hover .clubArt :global(.club-tile),.interestTiles button:hover {transform:none}
+}

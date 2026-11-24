@@ -1,3 +1,6 @@
+'use client';
+
+import {useState} from 'react';
 import {Code2, Flower2, Globe2, HeartHandshake, Leaf, Lightbulb, Palette, Rocket, Gamepad2, Microscope, type LucideIcon} from 'lucide-react';
 
 export function categoryIcon(category: string): LucideIcon {
@@ -24,7 +27,8 @@ export function CampusMark({campus, short = false}: {campus: string; short?: boo
 
 // A club's tile: its uploaded logo, or its own color with the category symbol, like an app icon.
 export function ClubArt({category, color, logo, size = 'regular'}: {category: string; color: string; logo?: string; size?: 'small' | 'regular' | 'large'}) {
-  if (logo) return <img className={`club-tile club-logo tile-${size}`} src={logo} alt="" loading="lazy" decoding="async"/>;
+  const [failedLogo, setFailedLogo] = useState<string>();
+  if (logo && logo !== failedLogo) return <img className={`club-tile club-logo tile-${size}`} src={logo} alt="" loading="lazy" decoding="async" onError={() => setFailedLogo(logo)}/>;
   const Icon = categoryIcon(category);
   return <span className={`club-tile tile-${size}`} style={{'--club': color || '#326BDA'} as React.CSSProperties} aria-hidden="true"><Icon strokeWidth={1.75}/></span>;
 }

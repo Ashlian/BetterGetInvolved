@@ -16,10 +16,10 @@ export default function RecommendationCard({club, saved, busy, onOpen, onSave, o
   const name = cleanName(club.name);
   return <article className="recommendation-card surface" style={{'--club': club.color} as React.CSSProperties}>
     <button className="recommendation-main plain-button" onClick={onOpen}>
-      <ClubArt category={club.category} color={club.color} logo={club.logo_url}/>
+      <span className="club-card-head"><ClubArt category={club.category} color={club.color} logo={club.logo_url} size="large"/></span>
       <span className="recommendation-copy">
         <span className="category-label">{club.category}</span>
-        <strong>{name}</strong>
+        <strong className="club-card-title">{name}</strong>
         <span className="recommendation-description">{club.description}</span>
       </span>
     </button>
