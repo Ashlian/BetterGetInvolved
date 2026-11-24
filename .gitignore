@@ -23,3 +23,9 @@ playwright-report/
 data/rutgers_clubs.json
 # Logo links taken from The Arc (behind Rutgers login); regenerate locally, never commit.
 data/clubs/logo_sources.json
+
+#UI Kits
+Layout/
+dicebear/
+liquid-glass/
+ui/

@@ -725,3 +725,47 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .tab-bar button{position:relative}
 .tab-bar .unread-badge{position:absolute;top:3px;left:calc(50% + 5px);min-width:17px;height:17px;padding:0 4px;font-size:.625rem}
 .tab-bar button{letter-spacing:-.02em}
+
+/* Discover deck */
+.discovery-layout {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+  gap: 24px;
+}
+.discovery-card {
+  border-radius: 26px;
+  box-shadow: 0 7px 0 -3px var(--surface), 0 8px 0 -3px var(--separator-strong), var(--shadow);
+}
+.discovery-cover {
+  isolation: isolate;
+  height: clamp(164px, 24vh, 230px);
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb,var(--club) 72%,#171827), #171827);
+}
+.discovery-cover::before {
+  content: "";
+  position: absolute;
+  inset: -70%;
+  z-index: -1;
+  background: repeating-radial-gradient(circle at 57% 44%, transparent 0 27px, rgb(255 255 255 / .12) 28px 29px, transparent 30px 47px);
+}
+.deck-count {
+  position: absolute;
+  inset: 16px auto auto 18px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  color: white;
+  background: rgb(0 0 0 / .55);
+  font-size: var(--t-footnote);
+  font-variant-numeric: tabular-nums;
+}
+.discovery-detail { top: 12px; right: 14px }
+.discovery-copy { padding: clamp(18px,4vw,28px) }
+.discovery-copy h2 { font-size: clamp(1.6rem,4vw,2.15rem); line-height: 1.12 }
+.discovery-actions { align-items: end; gap: clamp(22px,6vw,44px); margin-top: 26px }
+.discovery-actions .action-pass > span { color: var(--accent); box-shadow: inset 0 0 0 2px currentColor,var(--shadow) }
+.discovery-actions .action-later > span { width: 48px; height: 48px }
+.discovery-count { margin-top: 12px }
+.deck-info { border-top: 1px solid var(--separator-strong); padding: 14px 4px }
+.deck-info summary { cursor: pointer; font-weight: 600 }
+.deck-info-content { display: grid; justify-items: start; gap: 12px; padding-top: 12px; color: var(--label-2); font-size: var(--t-subhead) }
