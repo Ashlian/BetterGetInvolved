@@ -8,7 +8,7 @@ import {CampusMark, ClubArt} from './visuals';
 import styles from './discover-deck.module.css';
 
 export type DeckAction = 'pass' | 'save' | 'follow';
-type DeckClub = Club | Recommendation;
+type DeckClub = Club & Partial<Pick<Recommendation, 'explanation' | 'reasons' | 'tags'>>;
 const spring = {type: 'spring', stiffness: 330, damping: 32} as const;
 const still = {duration: 0};
 const LIST_PAGE_SIZE = 24;
@@ -23,19 +23,22 @@ type Drag = {
   x: number;
   y: number;
   active: boolean;
+  startX: number;
+  startY: number;
   samples: {x: number; time: number}[];
 };
 
-export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, onAction, busy, modalOpen, empty, fictional = false}: {
+export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, onAction, busy, modalOpen, empty, progress, fictional = false}: {
   clubs: DeckClub[];
   campus?: string;
   layout: 'swipe' | 'list';
-  onLayout: (layout: 'swipe' | 'list') => void;
+  onLayout?: (layout: 'swipe' | 'list') => void;
   onOpen?: (club: Club) => void;
   onAction: (action: DeckAction, club: Club) => Promise<boolean>;
   busy: boolean;
   modalOpen: boolean;
   empty: React.ReactNode;
+  progress?: React.ReactNode;
   fictional?: boolean;
 }) {
   const [listLimit, setListLimit] = useState(LIST_PAGE_SIZE);
@@ -54,6 +57,7 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
   const y = useMotionValue(0);
   const opacity = useMotionValue(1);
   const rotation = useTransform(x, [-260, 0, 260], [-14, 0, 14]);
+  const layerDrift = useTransform(x, [-180, 0, 180], [-14, 0, 14]);
   const deckProgress = useTransform(x, [-130, 0, 130], [1, 0, 1]);
   const followStamp = useTransform(x, [12, 115], [0, 1]);
   const passStamp = useTransform(x, [-115, -12], [1, 0]);
@@ -75,8 +79,12 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
 
   function springBack() {
     positionAnimation.current?.stop();
+    x.stop();
+    y.stop();
+    opacity.stop();
     positionAnimation.current = animate(x, 0, reduce ? still : spring);
     void animate(y, 0, reduce ? still : spring);
+    void animate(opacity, 1, reduce ? still : {duration: .14});
   }
 
   async function choose(action: DeckAction, club: DeckClub, velocity = 0) {
@@ -86,29 +94,36 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
     const swiping = layout === 'swipe';
     setPending(action);
     if (swiping) setSnapshot(queue.slice(0, 3));
+
+    // Begin the throw on release. The snapshot keeps the next card non-interactive until
+    // the request settles, and a rejected action springs the original card back.
+    let exit: Promise<unknown> | undefined;
+    if (swiping && !reduce) {
+      setAdvancing(true);
+      const direction = action === 'pass' ? -1 : 1;
+      const distance = window.innerWidth + (card.current?.offsetWidth ?? 0) / 2;
+      exit = action === 'save'
+        ? Promise.all([animate(y, -78, spring), animate(opacity, 0, {duration: .24})])
+        : Promise.all([
+          animate(x, direction * distance, {type: 'spring', stiffness: 250, damping: 28, velocity: direction * Math.min(1800, Math.abs(velocity)), restDelta: 35, restSpeed: 240}),
+          animate(opacity, 0, {duration: .4, ease: [.65, 0, .9, 1]}),
+        ]);
+    }
     try {
       const confirmed = await onAction(action, club);
       if (!confirmed) {
+        setAdvancing(false);
         springBack();
         return;
       }
-      if (!swiping) return;
-
-      setAdvancing(true);
-      setCelebrate(action === 'follow');
-      const direction = action === 'pass' ? -1 : 1;
-      if (reduce) {
-        opacity.set(0);
-      } else if (action === 'save') {
-        await Promise.all([animate(y, -58, spring), animate(opacity, 0, {duration: 0.25})]);
-      } else {
-        const distance = window.innerWidth + (card.current?.offsetWidth ?? 0) / 2;
-        await Promise.all([
-          animate(x, direction * distance, {type: 'spring', stiffness: 245, damping: 27, velocity: direction * Math.min(1400, Math.abs(velocity)), restDelta: 35, restSpeed: 220}),
-          animate(opacity, 0, {duration: 0.28}),
-        ]);
+      if (swiping) {
+        setCelebrate(action === 'follow');
+        await exit;
+        setPinned(queue[1]?.id);
       }
-      setPinned(queue[1]?.id);
+    } catch {
+      setAdvancing(false);
+      springBack();
     } finally {
       locked.current = false;
       setSnapshot(null);
@@ -139,8 +154,13 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
     if (locked.current || busy || modalOpen || !event.isPrimary || event.button !== 0) return;
     if ((event.target as HTMLElement).closest('a,button,input,select,textarea')) return;
     positionAnimation.current?.stop();
-    x.jump(0);
-    drag.current = {id: event.pointerId, x: event.clientX, y: event.clientY, active: false, samples: [{x: event.clientX, time: event.timeStamp}]};
+    y.stop();
+    if (event.pointerType === 'mouse') {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    drag.current = {id: event.pointerId, x: event.clientX, y: event.clientY, startX: x.get(), startY: y.get(), active: false,
+      samples: [{x: event.clientX, time: event.timeStamp}]};
   }
 
   function moveDrag(event: PointerEvent<HTMLElement>) {
@@ -157,8 +177,8 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
     }
     gesture.samples = gesture.samples.filter(sample => event.timeStamp - sample.time <= 90);
     gesture.samples.push({x: event.clientX, time: event.timeStamp});
-    x.set(dx);
-    if (!reduce) y.set(Math.max(-36, Math.min(36, dy * 0.3)));
+    x.set(gesture.startX + dx);
+    if (!reduce) y.set(Math.max(-52, Math.min(52, gesture.startY + dy * 0.45)));
   }
 
   function endDrag(event: PointerEvent<HTMLElement>, cancelled = false) {
@@ -166,12 +186,13 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
     if (!gesture || event.pointerId !== gesture.id) return;
     drag.current = null;
     setDragging(false);
-    if (!gesture.active) return;
+    if (!gesture.active) {springBack(); return;}
     const dx = event.clientX - gesture.x;
     const recent = gesture.samples.find(sample => event.timeStamp - sample.time >= 12 && event.timeStamp - sample.time <= 100);
     const velocity = recent ? (event.clientX - recent.x) / (event.timeStamp - recent.time) * 1000 : 0;
     const threshold = Math.min(120, event.currentTarget.offsetWidth * 0.28);
-    const flick = Math.abs(dx) >= 32 && Math.abs(velocity) >= 650 && Math.sign(velocity) === Math.sign(dx);
+    const projected = dx + velocity * .10;
+    const flick = Math.abs(dx) >= 25 && Math.abs(velocity) >= 480 && Math.abs(projected) >= threshold && Math.sign(velocity) === Math.sign(dx);
     if (!cancelled && active && !busy && !modalOpen && (Math.abs(dx) >= threshold || flick)) {
       void choose(dx < 0 ? 'pass' : 'follow', active, velocity);
     } else {
@@ -182,11 +203,11 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
   const disabled = busy || pending !== null || dragging;
   return <div className={styles.deckPanel}>
     {active && <div className={styles.toolbar}>
-      <span className={styles.remaining}>{clubs.length} {clubs.length === 1 ? 'club' : 'clubs'} to explore</span>
-      <div className={styles.layoutSwitch} role="group" aria-label="Club layout">
+      {progress ?? <span className={styles.remaining}>{clubs.length} {clubs.length === 1 ? 'club' : 'clubs'} to explore</span>}
+      {onLayout && <div className={styles.layoutSwitch} role="group" aria-label="Club layout">
         <button type="button" aria-pressed={layout === 'swipe'} disabled={disabled} onClick={() => onLayout('swipe')}><Layers size={16} aria-hidden="true"/>Swipe</button>
         <button type="button" aria-pressed={layout === 'list'} disabled={disabled} onClick={() => onLayout('list')}><List size={16} aria-hidden="true"/>List</button>
-      </div>
+      </div>}
     </div>}
     {active ? layout === 'swipe' ? <div className={styles.swipeArea}>
       <div className={styles.stage} aria-busy={pending !== null}>
@@ -194,7 +215,7 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
           const depth = index + 1 - Number(advancing);
           return <motion.div key={club.id} className={styles.preview} aria-hidden="true" inert
             initial={false} animate={{y: depth * 15, scale: 1 - depth * 0.052, rotate: reduce ? 0 : depth * (index === 0 ? 2 : -1.4), opacity: 1 - depth * 0.16}}
-            transition={reduce ? still : spring} style={{zIndex: 2 - index}}>
+            transition={reduce ? still : spring} style={{zIndex: 2 - index, x: reduce || advancing ? 0 : layerDrift}}>
               <ClubContent club={club} campus={campus} fictional={fictional}/>
             </motion.div>;
         })}
@@ -216,7 +237,7 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
         {celebrate && !reduce && <motion.span className={styles.heart} aria-hidden="true" initial={{opacity: 0, scale: 0.55, y: 14}} animate={{opacity: [0, 1, 1, 0], scale: [0.55, 1.22, 1], y: -26}} transition={{duration: 0.5}}><Heart size={30} fill="currentColor"/></motion.span>}
       </div>
       <DeckActions disabled={disabled} onAction={action => void choose(action, active)}/>
-      <p className={styles.hint}>Swipe left to pass, right to follow</p>
+      <p className={styles.hint}><strong>Grab the card</strong> and drag left to pass or right to follow.</p>
     </div> : <>
       <ul className={styles.list}>
       {queue.slice(0, listLimit).map(club => <li key={club.id} className={styles.listCard}>
@@ -242,8 +263,8 @@ function DeckActions({disabled, onAction, compact = false}: {disabled: boolean; 
 }
 
 function ClubContent({club, campus, onOpen, disabled, fictional}: {club: DeckClub; campus?: string; onOpen?: (club: Club) => void; disabled?: boolean; fictional: boolean}) {
-  const reasons = 'explanation' in club ? [...new Set(club.reasons?.length ? club.reasons : [club.explanation])].filter(Boolean) : [];
-  const tags = 'tags' in club ? club.tags ?? [] : [];
+  const reasons = [...new Set(club.reasons?.length ? club.reasons : club.explanation ? [club.explanation] : [])];
+  const tags = club.tags ?? [];
   return <>
     <div className={styles.media} style={{'--deck-club-color': club.color || '#cc0033'} as CSSProperties}>
       <div className={styles.emblem}><ClubArt category={club.category} color={club.color} logo={club.logo_url} size="large"/></div>

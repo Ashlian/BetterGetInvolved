@@ -663,3 +663,18 @@ legend{font-weight:600;margin-bottom:10px;padding:0}
 .editorial-interest-picker .interest-option:hover{transform:translateY(-2px)}
 .editorial-interest-picker .interest-option.chosen{background:#a50030;color:white;border-color:#a50030}
 @media(prefers-reduced-motion:reduce){.editorial-interest-picker .interest-option{transition:none}.editorial-interest-picker .interest-option:hover{transform:none}}
+
+/* ClRUb editorial shell */
+.editorial-shell{background:#faf6ef;min-height:100svh}
+.editorial-shell .site-header{background:#faf6ef;border-bottom:1px solid #dcc4c3}
+.editorial-shell .brand-mark{background:#a90031;border-radius:50%}
+.editorial-shell .desktop-nav .nav-item{border-radius:99px}
+.editorial-shell .tab-bar{background:#faf6ef}
+.editorial-shell[data-home="true"] .main-content{max-width:1440px;padding-top:0}
+.editorial-shell .page-header h1{font:500 clamp(2.65rem,6vw,5.4rem)/.9 Georgia,serif;letter-spacing:-.065em;color:#52182e}
+.identity-editor-preview{position:relative;display:grid;place-items:center;min-height:130px;background:#29101d;color:#ffe5eb;border-radius:6px}
+.identity-editor-preview svg{height:145px}
+.identity-editor-preview strong{font-size:.78rem;margin-bottom:8px}
+.studio-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:12px 0;border-bottom:1px solid #dcc4c3}
+.studio-controls div{flex:1 0 min(100%,220px)}
+.studio-controls select{padding:7px;margin-left:6px;background:white;border:1px solid #dcc4c3;border-radius:5px}

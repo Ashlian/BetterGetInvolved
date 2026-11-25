@@ -1,22 +1,33 @@
-.hero {display:grid;grid-template-columns:1.03fr 1fr;min-height:440px;background:#a9002d;color:#fff6ee;overflow:hidden;border-radius:5px 30px 5px 5px}
-.heroCopy {padding:clamp(20px,4vw,56px);align-self:center;min-width:0}
-.heroGreeting {font-size:.82rem;font-weight:740;letter-spacing:.11em;text-transform:uppercase;margin-bottom:13px;color:#ffdfdf}
-.hero h1 {font:500 clamp(3.1rem,6.7vw,6.6rem)/.91 Georgia,serif;letter-spacing:-.074em;margin:0 0 17px}
-.hero h1 em {color:#ffd0db}
-.hero h1 + p {font-size:clamp(.95rem,1.9vw,1.125rem);max-width:32ch}
-.heroButton {display:inline-flex;gap:8px;align-items:center;background:#fff4e8;color:#760021;font-weight:760;min-height:46px;padding:0 15px;border-radius:99px;margin:17px 0}
-.heroButton:hover {background:#ffdbe4}
-.search {display:flex;gap:8px;align-items:center;background:#780021;color:#ffe2e8;padding:4px 4px 4px 11px;border:1px solid #ffd4e787;border-radius:7px}
-.search input {width:100%;min-width:0;min-height:44px;border:0;background:transparent;color:#fff7f6}
-.search input::placeholder {color:#f6c8d5}
-.search button {min-height:44px;background:#fff3ed;color:#780021;padding:0 10px;border-radius:4px;font-weight:700}
-.hero :focus-visible, .interests :focus-visible {outline-color:#ffc085}
-.photo {margin:0;position:relative;display:grid;align-items:end;background:linear-gradient(0deg,#210a16b0,transparent 43%),url('/rutgers-old-queens.jpg') 53% center/cover;min-height:220px;isolation:isolate}
-.photo figcaption {display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:17px 22px;color:#fff5eb;font:italic 1.5rem Georgia,serif}
-.photo figcaption span {font:650 .72rem var(--font);letter-spacing:.1em;text-transform:uppercase}
+.hero {display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);min-height:min(810px,calc(100svh - 80px));align-items:center;isolation:isolate;position:relative;color:#252321}
+.heroCopy {padding:clamp(18px,4vw,57px) 0;z-index:2;min-width:0;position:relative}
+.heroGreeting {font-size:.77rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#790024;margin-bottom:17px}
+.hero h1 {font:500 clamp(4rem,9.3vw,9rem)/.78 Georgia,serif;letter-spacing:-.085em;margin:0 0 23px}
+.hero h1 em {color:#a90031}
+.line {display:block;overflow:hidden;padding:.05em .13em .14em 0;margin-bottom:-.1em}
+.line > span {display:block;animation:posterIn .72s cubic-bezier(.2,.78,.25,1) both}
+@keyframes posterIn {from{transform:translateY(105%);opacity:0}to{transform:none;opacity:1}}
+.hero h1 + p {font-size:clamp(1rem,1.9vw,1.22rem);max-width:32ch}
+.heroActions {display:flex;align-items:center;flex-wrap:wrap;gap:9px 14px;margin:19px 0 13px}
+.heroButton,.dailyLink {display:inline-flex;gap:8px;align-items:center;min-height:47px;padding:0 14px;font-weight:750;border-radius:99px}
+.heroButton {background:#a90031;color:#fffaf1}
+.heroButton:hover {background:#790024}
+.dailyLink {padding-inline:2px;color:#790024}
+.dailyLink:hover,.labLink:hover {text-decoration:underline;text-underline-offset:4px}
+.labLink {display:inline-flex;align-items:center;min-height:44px;color:#790024;font-size:.78rem;font-weight:700}
+.search {display:flex;gap:8px;align-items:center;max-width:425px;background:#fffaf4;color:#790024;padding:4px 4px 4px 11px;border:1px solid #d6b2b8;border-radius:4px}
+.search input {width:100%;min-width:0;min-height:43px;border:0;background:transparent;color:#3d2029}
+.search input::placeholder {color:#795760}
+.search button {min-height:43px;background:#f0d5dd;color:#790024;padding:0 10px;border-radius:3px;font-weight:750}
+.heroField {position:relative;aspect-ratio: .92;min-width:0}
+.heroOrbit {position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.photo {position:absolute;inset:12% 14% 13% 21%;margin:0}
+.photoWindow {height:100%;background:url('/rutgers-old-queens.jpg') 52% center/cover;border-radius:50% 50% 46% 47%;box-shadow:0 0 0 2px #790024}
+.photo figcaption {position:absolute;left:-7%;bottom:0;padding:7px 11px;color:#fff5eb;background:#790024;display:grid;gap:3px;font:italic 1.15rem Georgia,serif}
+.photo figcaption span {font:650 .63rem var(--font);letter-spacing:.1em;text-transform:uppercase}
 
-.feed {display:grid;gap:clamp(27px,5vw,62px);padding-top:clamp(25px,5vw,55px);color:#29121c}
+.feed {display:grid;gap:clamp(37px,7vw,104px);padding-top:clamp(20px,4vw,48px);color:#29121c}
 .feed section {min-width:0}
+.feed > section {scroll-margin-top:88px}
 .sectionHeader {display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:4px 15px;margin-bottom:12px;border-bottom:1px solid #eddbe0}
 .sectionHeader h2,.interests h2 {font:500 clamp(2rem,4vw,3.4rem)/1 Georgia,serif;letter-spacing:-.055em;padding-bottom:7px}
 .sectionHeader button {min-height:44px;display:flex;align-items:center;gap:7px;color:#9a0833;font-size:.875rem;font-weight:710}
@@ -66,14 +77,84 @@
 .announcements a > span {overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 @media(max-width:760px) {
   .hero {grid-template-columns:1fr;min-height:0}
-  .hero h1 {font-size:clamp(3rem,12vw,5rem)}
-  .photo {min-height:clamp(158px,39vw,235px);background-position:center 46%}
+  .hero h1 {font-size:clamp(3.1rem,15vw,6rem)}
+  .heroCopy {padding:25px 0 0}
+  .heroField {width:min(100%,490px);margin:-9px auto 0;aspect-ratio:1.08}
+  .photo {inset:8% 20% 11% 25%}
   .selection,.interests {grid-template-columns:1fr}
   .rail {grid-auto-columns:minmax(180px,57%)}
   .interestTiles {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(prefers-reduced-motion:reduce) {
-  .club {animation:none}
+  .club,.line > span {animation:none}
   .clubArt :global(.club-tile),.interestTiles button {transition:none}
   .clubOpen:hover .clubArt :global(.club-tile),.interestTiles button:hover {transform:none}
+}
+
+/* Oversized lead feature with a smaller, scrollable record shelf. */
+.selection {grid-template-columns:minmax(0,1.13fr) minmax(0,.87fr);gap:clamp(13px,3vw,42px);align-items:start}
+.selection[data-solo="true"] {grid-template-columns:minmax(0,1fr)}
+.club[data-featured="true"] {background:#f1dfd5;border:0;border-radius:0 38px 0 0}
+.club[data-featured="true"] .clubOpen {grid-template-columns:minmax(105px,.75fr) minmax(0,1fr);min-height:215px}
+.club[data-featured="true"] .clubArt {background:color-mix(in srgb,var(--club-ink) 34%,#e8cad4)}
+.club[data-featured="true"] .clubCopy > strong {font-size:clamp(1.55rem,4vw,3.4rem)}
+.rail {margin-top:20px;grid-auto-columns:minmax(155px,46%)}
+.rail .club {border:0;border-bottom:1px solid #e2c6c9;border-radius:0;background:transparent}
+.rail .clubArt {min-height:126px;border-radius:44% 44% 5px 5px}
+.sectionHeader {border-bottom-color:#d3afba}
+.sectionHeader h2 {font-size:clamp(2.5rem,5.5vw,5rem)}
+.eventList {border:0;border-top:2px solid #a90031;background:#fffaf2}
+@media(max-width:760px){
+  .selection {grid-template-columns:1fr}
+  .rail {margin-top:0;grid-auto-columns:minmax(155px,53%)}
+  .club[data-featured="true"] .clubOpen {min-height:165px}
+}
+
+/* The artwork stays in view while the opening copy gives way to the daily chapter. */
+.hero {grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(min(750px,calc(100svh - 80px)),auto) minmax(48vh,auto);align-items:start}
+.heroCopy {align-self:center}
+.heroField {grid-area:1 / 2 / 3;position:sticky;top:73px;align-self:start;margin-top:clamp(24px,6vh,75px);aspect-ratio:1.04;isolation:isolate}
+.orbitBackdrop {position:absolute;inset:13% 10% 15%;border-radius:50%;background:#eddfd6;outline:1px solid #d3b6b9;outline-offset:12px}
+.sculptureScroll,.sculpturePointer {position:absolute;inset:0;pointer-events:none}
+.sculpturePointer {filter:drop-shadow(0 18px 13px #79002436)}
+.sculpturePointer::after {content:"";position:absolute;inset:auto 24% 12%;height:10%;border-radius:50%;background:#3e14272b;filter:blur(14px);z-index:-1}
+.heroField .photo {inset:53% 63% 3% 4%;z-index:1}
+.heroField .photoWindow {border-radius:48% 48% 4px 4px}
+.heroField .photo figcaption {font-size:.94rem;left:-3%;padding:6px 8px}
+.orbitCard {position:absolute;z-index:2;display:flex;align-items:center;gap:8px;text-align:left;padding:9px 11px;border:1px solid #d6b2b8;background:#fff5ec;color:#42152b;box-shadow:0 10px 30px #4d143729;max-width:48%;border-radius:4px}
+.orbitCard[data-position="0"] {right:1%;top:20%;rotate:7deg}
+.orbitCard[data-position="1"] {right:8%;bottom:14%;rotate:-7deg}
+.orbitCard span:last-child {min-width:0;display:grid;gap:2px}
+.orbitCard small {font-size:.65rem;color:#790024}
+.orbitCard strong {font:600 clamp(.85rem,1.5vw,1.17rem) Georgia,serif;overflow-wrap:anywhere}
+.orbitCard:hover {rotate:0deg;background:#f5dcea}
+.storyBeat {grid-area:2 / 1;align-self:center;border-left:2px solid #a90031;padding:12px clamp(12px,4vw,56px) 12px clamp(13px,3vw,35px);margin-bottom:12vh}
+.storyBeat h2 {font:500 clamp(2.7rem,6vw,6rem)/.9 Georgia,serif;letter-spacing:-.07em;margin:9px 0 15px}
+.storyBeat em {color:#a90031}
+.storyBeat p {max-width:38ch;color:#674b56}
+@media(max-width:760px){
+  .hero {grid-template-columns:1fr;grid-template-rows:auto}
+  .heroField {grid-area:auto;position:relative;top:auto;margin:0 auto}
+  .sculptureScroll {transform:none!important}
+  .storyBeat {grid-area:auto;margin:18px 0 0}
+  .orbitCard {padding:5px 7px;max-width:55%}
+  .orbitCard[data-position="1"] {right:3%;bottom:12%}
+}
+@media(prefers-reduced-motion:reduce){
+  .heroField {position:relative;grid-row:1}
+}
+@media(max-width:760px) and (prefers-reduced-motion:reduce){
+  .heroField {grid-row:auto}
+}
+@media (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .heroField[data-visible="true"] .heroOrbit {animation:ribbonBreathe 12s ease-in-out infinite}
+  .heroField[data-visible="false"] .heroOrbit {animation:ribbonBreathe 12s ease-in-out infinite paused}
+}
+@keyframes ribbonBreathe {0%,100% {rotate:-2deg} 50% {rotate:2deg}}
+.club[data-featured="true"] .clubArt {position:relative;isolation:isolate}
+.club[data-featured="true"] .clubArt::before,.club[data-featured="true"] .clubArt::after {content:"";position:absolute;left:10%;right:10%;top:15%;bottom:15%;border:1px solid #6b193982;border-radius:50%;transform:rotate(-29deg) scaleY(.74);z-index:-1}
+.club[data-featured="true"] .clubArt::after {transform:rotate(26deg) scaleY(.67)}
+@media(prefers-reduced-motion:reduce){
+  .sculptureScroll,.sculpturePointer,.heroField .photo,.orbitCard {transform:none!important}
+  .storyBeat > div {opacity:1!important;transform:none!important}
 }

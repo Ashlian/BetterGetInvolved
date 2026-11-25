@@ -1,13 +1,18 @@
 'use client';
 
-import Link from 'next/link';
+import {LayoutGroup} from 'motion/react';
+
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {ArrowUpRight, Bookmark, GraduationCap, CalendarDays, Check, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, House, LoaderCircle, LogIn, MessagesSquare, Radio, Search, Settings2, ShieldCheck, Shuffle, SlidersHorizontal, Sparkles, Users, UserRound, X} from 'lucide-react';
-import {api, post, cleanName, eventEnd, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type ForYou, type DiscoverMode, type ClubSearchResult, type SearchUnderstanding, type CampusEvent, type ForumPost, type LiveStatus, type Unread, type User, type Saved} from '@/lib/api';
+import {api, post, cleanName, dateKey, eventEnd, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type ForYou, type DiscoverMode, type ClubSearchResult, type SearchUnderstanding, type CampusEvent, type ForumPost, type LiveStatus, type Unread, type User, type Saved} from '@/lib/api';
 import {AuthDialog, OnboardingDialog} from './account';
 import UserAvatar from './avatar';
 import {ProfilePage, StudentProfileDialog, type ProfileTab} from './profile';
 import HomeFeed, {HomeHero} from './home-feed';
+import {DailyCover, DailyDeck} from './daily-discovery';
+import signatureStyles from './signature.module.css';
+import RutgersDNA from './rutgers-dna';
+import {useDailyDiscovery} from './use-daily-discovery';
 import ClubCard from './club-card';
 import Dialog from './dialog';
 import {ClubDetail, EventDetail} from './detail-dialogs';
@@ -18,12 +23,12 @@ import InboxPage, {SocialTabs, type InboxTab} from './inbox';
 import DiscoverDeck, {type DeckAction} from './discover-deck';
 import discoverStyles from './discover-deck.module.css';
 
-type View = 'home' | 'discover' | 'events' | 'forums' | 'inbox' | 'profile' | 'officer';
+type View = 'home' | 'daily' | 'dna' | 'discover' | 'events' | 'forums' | 'inbox' | 'profile' | 'officer';
 const NO_UNREAD: Unread = {messages: 0, notifications: 0};
 const UNREAD_POLL_MS = 60000;
 const EMPTY_SAVED: Saved = {club_ids: [], event_ids: [], dismissed_ids: [], maybe_later_ids: [], rsvps: {}};
 const NAV = [{id: 'home' as const, title: 'Home', icon: House}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'forums' as const, title: 'Social', icon: MessagesSquare}];
-const viewTitles: Record<View, string> = {home: 'Home', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Social', profile: 'Profile', officer: 'Club manager'};
+const viewTitles: Record<View, string> = {home: 'Home', daily: 'Daily Discovery', dna: 'Rutgers DNA', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Social', profile: 'Profile', officer: 'Club manager'};
 // The site's contact address comes from the environment (set in Vercel and .env), not the code.
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || '';
 
@@ -38,24 +43,29 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const [searchClubs, setSearchClubs] = useState<(Club | Recommendation)[]>([]); const [understood, setUnderstood] = useState<SearchUnderstanding | null>(null); const [searching, setSearching] = useState(false); const [searchError, setSearchError] = useState(''); const [sessionSkipped, setSessionSkipped] = useState<string[]>([]);
   const [busy, setBusy] = useState(false); const [profileTab, setProfileTab] = useState<ProfileTab>('clubs'); const [studentProfile, setStudentProfile] = useState<string | null>(null);
   const [unread, setUnread] = useState<Unread>(NO_UNREAD); const [inboxTab, setInboxTab] = useState<InboxTab>('messages'); const [conversationId, setConversationId] = useState<string | null>(null);
-  const [homePicks, setHomePicks] = useState<{account: string; clubs: Recommendation[]} | null>(null);
+  const [homePicks, setHomePicks] = useState<{account: string; day: string; clubs: Recommendation[]} | null>(null);
   const [homePicksError, setHomePicksError] = useState<{account: string; message: string} | null>(null);
   const [homePicksRetry, setHomePicksRetry] = useState(0); const [announcements, setAnnouncements] = useState<ForumPost[] | null>(null); const [suggestedEvents, setSuggestedEvents] = useState<CampusEvent[]>([]); const [eventQuery, setEventQuery] = useState(''); const [eventCampus, setEventCampus] = useState('');
   const [eventResults, setEventResults] = useState<CampusEvent[]>([]); const [eventsSearching, setEventsSearching] = useState(false); const [eventsSearchError, setEventsSearchError] = useState('');
   const [liveEvents, setLiveEvents] = useState<CampusEvent[]>([]); const [liveStatus, setLiveStatus] = useState<LiveStatus | null>(null); const [eventSource, setEventSource] = useState<'live' | 'demo'>('live'); const [eventCategory, setEventCategory] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const dailyDate = dateKey(new Date(now).toISOString());
+  const rankedHome = homePicks && homePicks.account === user?.id ? homePicks.clubs : undefined;
+  const rankedHomeError = homePicksError && homePicksError.account === user?.id ? homePicksError.message : '';
+  const daily = useDailyDiscovery(user?.id, now, homePicks?.day === dailyDate ? rankedHome : undefined, clubs, saved, !loading && !loadError);
   const openedInitial = useRef(false);
-  const [modePreference, setDiscoverModeState] = useState<DiscoverMode | null>(null);
-  const discoverMode = modePreference ?? (user ? 'foryou' : 'random'); const [forYou, setForYou] = useState<{account: string; result: ForYou} | null>(null);
+  const [discoverMode, setDiscoverModeState] = useState<DiscoverMode>('random');
+  const [forYou, setForYou] = useState<{account: string; result: ForYou} | null>(null);
   const [forYouError, setForYouError] = useState<{account: string; message: string} | null>(null);
   const [forYouRetry, setForYouRetry] = useState(0);
   const [deckLayout, setDeckLayout] = useState<'swipe' | 'list'>('swipe');
   const deckRequest = useRef(false);
   const uncertainDeckWrites = useRef(new Set<string>());
   const [shuffleSeed, setShuffleSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
-  // The chosen mode is a per-browser convenience, so it lives in localStorage.
-  useEffect(() => {try {const stored = localStorage.getItem('bgi.discoverMode'); if (stored === 'random' || stored === 'foryou') setDiscoverModeState(stored);} catch {}}, []);
-  const setDiscoverMode = useCallback((mode: DiscoverMode) => {setDiscoverModeState(mode); try {localStorage.setItem('bgi.discoverMode', mode);} catch {}}, []);
+  function setDiscoverMode(mode: DiscoverMode) {
+    setDiscoverModeState(mode);
+    setDeckLayout('swipe');
+  }
   const notify = useCallback((text: string, error = false) => setToast({text, error}), []);
   const refreshRecommendations = useCallback(async () => {
     const result = await api<{clubs: Recommendation[]; method: string}>('/recommendations?limit=24'); setRecommendations(result.clubs); setMethod(result.method);
@@ -110,16 +120,16 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     return () => {active = false;};
   }, [view, directory, discoverMode, user, saved.club_ids, saved.maybe_later_ids, saved.dismissed_ids, forYouRetry]);
   useEffect(() => {
-    if (view !== 'home' || !user || loading || loadError) return;
+    if ((view !== 'home' && view !== 'daily') || !user || loading || loadError) return;
     let active = true;
     setHomePicksError(null);
     void api<ForYou>('/for-you?limit=6').then(result => {
-      if (active) setHomePicks({account: user.id, clubs: result.clubs});
+      if (active) setHomePicks({account: user.id, day: dailyDate, clubs: result.clubs});
     }).catch(error => {
       if (active) setHomePicksError({account: user.id, message: (error as Error).message});
     });
     return () => {active = false;};
-  }, [view, user, loading, loadError, saved.club_ids, saved.maybe_later_ids, saved.dismissed_ids, homePicksRetry]);
+  }, [view, user, loading, loadError, saved.club_ids, saved.maybe_later_ids, saved.dismissed_ids, homePicksRetry, dailyDate]);
 
   useEffect(() => {
     if (view !== 'home' || !user) {if (!user) {setHomePicks(null); setHomePicksError(null); setAnnouncements(null); setSuggestedEvents([]);} return;}
@@ -151,20 +161,26 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     return () => {active = false; clearInterval(timer); document.removeEventListener('visibilitychange', check);};
   }, [user?.id]);
   const updateUnread = useCallback((next: Unread) => setUnread(current => current.messages === next.messages && current.notifications === next.notifications ? current : next), []);
-  const navView = view === 'inbox' ? 'forums' : view;
+  const navView = view === 'inbox' ? 'forums' : view === 'daily' || view === 'dna' ? 'home' : view;
   const unreadTotal = unread.messages + unread.notifications;
   function openPerson(who: string) {if (!user) {setAuthOpen(true); return;} setStudentProfile(who);}
   function openConversation(id: string) {setClubDetail(null); setStudentProfile(null); setInboxTab('messages'); setConversationId(id); go('inbox');}
   function openClubById(id: string) {const club = clubs.find(c => c.id === id); if (club) {setStudentProfile(null); setClubDetail(club);} else notify('That club could not be found.', true);}
   function openEventById(id: string) {void api<CampusEvent>(`/events/${encodeURIComponent(id)}`).then(openEvent).catch(e => notify((e as Error).message, true));}
-  function go(next: View, allClubs = false) {setView(next); if (next === 'discover') setDirectory(allClubs); window.scrollTo({top: 0, behavior: 'instant'});}
+  function go(next: View, allClubs = false) {setView(next); if (next === 'discover') {setDirectory(allClubs); if (!allClubs) setDeckLayout('swipe');} window.scrollTo({top: 0, behavior: 'instant'});}
   function searchDirectory(term: string) {
     setQuery(term); setCampus(''); setCategory(''); setBeginner(false); go('discover', true);
   }
-  function openHomeDeck() {
-    setDiscoverMode(user ? 'foryou' : 'random');
-    setDeckLayout('swipe');
+  function openDiscover(mode: DiscoverMode) {
+    setDiscoverMode(mode);
     go('discover');
+  }
+  function navigatePrimary(next: View) {
+    if (next === 'discover') openDiscover('random');
+    else go(next);
+  }
+  function openHomeDeck() {
+    openDiscover(user ? 'foryou' : 'random');
   }
   function openProfile(tab: ProfileTab) {if (!user) {setAuthOpen(true); return;} setProfileTab(tab); go('profile');}
   async function dismissClub(club: Club) {
@@ -294,11 +310,15 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const liveCategories = [...new Set(liveEvents.map(e => e.category))].sort();
   const liveNote = liveStatus?.synced_at ? `Live from Rutgers getINVOLVED and Rutgers Recreation via Scarlet Sync · checked ${relativeTime(liveStatus.synced_at)}` : '';
   const firstName = user?.display_name.split(' ')[0];
+  const followedClubs = user ? clubs.filter(club => saved.club_ids.includes(club.id)) : [];
+  const dailyAvailability = !user ? 'guest' : daily.total ? 'ready' : rankedHomeError ? 'error' : !daily.loaded || !rankedHome || homePicks?.day !== dailyDate ? 'loading' : 'empty';
+  const modalOpen = !!(clubDetail || eventDetail || studentProfile || authOpen || onboarding || aboutOpen);
+  const retryHomePicks = () => {setHomePicksError(null); setHomePicksRetry(value => value + 1);};
   // The club manager appears only for people who own a club (or admins).
   const isOfficer = !!user && (user.role === 'admin' || (user.managed_club_ids?.length ?? 0) > 0);
   const managedClubs = user ? clubs.filter(c => user.managed_club_ids?.includes(c.id)) : [];
   const subtitle: Record<View, string> = {
-    home: '',
+    home: '', daily: '', dna: '',
     discover: directory ? `Search all ${clubs.length} clubs by name, interest, or a plain-language request.` : '',
     events: eventSource === 'live' ? 'Real Rutgers–New Brunswick club, recreation, and game listings.' : 'Sample events from the demo clubs, for trying saves and RSVPs.',
     forums: 'Ask questions, share experiences, and talk about your clubs.',
@@ -308,7 +328,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   };
   const avatar = <UserAvatar name={user?.display_name} url={user?.avatar_url} size={36}/>;
 
-  return <div className="app-shell">
+  return <LayoutGroup><div className={view === 'daily' ? `app-shell ${signatureStyles.focusedShell}` : 'app-shell editorial-shell'} data-home={view === 'home'}>
     <a href="#main-content" className="skip-link">Skip to content</a>
     <header className="site-header">
       <div className="site-header-inner">
@@ -317,7 +337,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
           <span className="brand-type">ClRUb<small>Rutgers–New Brunswick</small></span>
         </button>
         <nav className="desktop-nav" aria-label="Main navigation">
-          {NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={`nav-item ${navView === item.id ? 'active' : ''}`} onClick={() => go(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={17}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}
+          {NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={`nav-item ${navView === item.id ? 'active' : ''}`} onClick={() => navigatePrimary(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={17}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}
         </nav>
         <div className="site-header-actions">
           {isOfficer && <button className={`icon-button ${view === 'officer' ? 'is-saved' : ''}`} onClick={() => go('officer')} aria-current={view === 'officer' ? 'page' : undefined} aria-label="Club manager" title="Club manager"><Users size={20}/></button>}
@@ -328,20 +348,41 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     </header>
     <div className="workspace">
       <main className="main-content" id="main-content">
-        {view === 'home' ? <HomeHero name={firstName} signedIn={!!user} onDiscover={openHomeDeck} onSearch={searchDirectory}/>
-          : (view !== 'discover' || directory || loading || loadError) && <div className="page-header"><div><h1>{viewTitles[view]}</h1>{subtitle[view] && <p className="header-subtitle">{subtitle[view]}</p>}</div></div>}
+        {view === 'home' ? <HomeHero name={firstName} signedIn={!!user} onDiscover={openHomeDeck} onSearch={searchDirectory} clubs={homeRecommendations.length ? homeRecommendations : browseClubs} onClub={setClubDetail}
+          onDaily={() => document.getElementById('daily-cover-title')?.focus()}/>
+          : ((view !== 'discover' && view !== 'daily' && view !== 'dna') || directory && view === 'discover' || loading || loadError) && <div className="page-header"><div><h1>{viewTitles[view]}</h1>{subtitle[view] && <p className="header-subtitle">{subtitle[view]}</p>}</div></div>}
       {loading ? <div className="page-loading" role="status"><LoaderCircle size={28} className="spin"/><p>Loading clubs and events…</p></div> : loadError ? <div className="surface empty-state"><CircleHelp size={30}/><h2>Unable to load clubs and events</h2><p>{loadError}</p><p className="fine-print">Make sure the local API is running on port 8000, then try again.</p><button className="button button-primary" onClick={() => void load()}>Try again</button></div> : <>
         {view === 'home' && <HomeFeed
           user={user} clubs={clubs} browseClubs={browseClubs} saved={saved} busy={busy}
-          picks={homePicksError && homePicksError.account === user?.id ? {status: 'error', message: homePicksError.message}
-            : homePicks && homePicks.account === user?.id ? {status: 'ready', clubs: homeRecommendations} : {status: 'loading'}}
+          dailyCover={<DailyCover name={firstName} now={now} identity={user?.id} daily={daily} availability={dailyAvailability}
+            onStart={() => go('daily')} onSignIn={() => setAuthOpen(true)} onInterests={() => setOnboarding(true)} onRetry={retryHomePicks}/>}
+          dnaCard={user ? <RutgersDNA user={user} followed={followedClubs} preview onOpen={() => go('dna')}
+            onEdit={() => setOnboarding(true)} onRelated={searchDirectory} onClub={setClubDetail}/>
+            : <RutgersDNA user={{interests:[]}} followed={[]} preview guest onEdit={() => setAuthOpen(true)} onRelated={searchDirectory} onClub={setClubDetail}/>}
+          picks={rankedHomeError ? {status: 'error', message: rankedHomeError}
+            : rankedHome ? {status: 'ready', clubs: homeRecommendations} : {status: 'loading'}}
           upcoming={myUpcoming} campusEvents={campusEvents} suggestedEvents={suggestedEvents} announcements={announcements}
           onDiscover={openHomeDeck} onBrowse={searchDirectory} onInterests={() => setOnboarding(true)}
-          onRetry={() => {setHomePicksError(null); setHomePicksRetry(value => value + 1);}}
+          onRetry={retryHomePicks}
           onOpen={setClubDetail} onBookmark={club => void bookmark(club)} onFollow={club => void follow(club)} onDismiss={club => void dismissClub(club)}
           onProfile={openProfile} onEvents={() => go('events')} onSocial={() => go('forums')}
           onOpenEvent={openEvent} onSaveEvent={event => void saveEvent(event)}
         />}
+
+        {view === 'daily' && user && <DailyDeck daily={daily} now={now} name={firstName} identity={user.id} campus={user.campus} busy={busy} modalOpen={modalOpen}
+          onAction={async (action, club) => {
+            if (!daily.remaining.some(item => item.id === club.id)) return false;
+            const confirmed = await actOnDeck(action, club);
+            if (confirmed) daily.recordAction(club.id, action);
+            return confirmed;
+          }}
+          onOpen={setClubDetail} onHome={() => {
+            go('home');
+            requestAnimationFrame(() => document.getElementById('daily-cover-title')?.focus());
+          }} onExplore={openHomeDeck} onSaved={() => openProfile('clubs')} onDNA={() => go('dna')}
+        />}
+        {view === 'dna' && user && <RutgersDNA user={user} followed={followedClubs}
+          onHome={() => go('home')} onEdit={() => setOnboarding(true)} onRelated={interest => interest ? searchDirectory(interest) : openHomeDeck()} onClub={setClubDetail}/>}
 
         {view === 'discover' && <>
           {directory ? <><button className="button button-secondary view-switch" onClick={() => setDirectory(false)}><Compass size={16}/>Back to club deck</button><div className="filter-bar"><div className="search-input"><Search size={18}/><input aria-label="Search clubs and interests" placeholder="Describe what you’re into, like “pickup basketball” or “premed volunteering”" value={query} onChange={e => setQuery(e.target.value)} enterKeyHint="search"/>{query && <button className="icon-button clear-button" aria-label="Clear search" onClick={() => setQuery('')}><X size={15}/></button>}</div><label className="select-filter"><span className="sr-only">Campus</span><Compass size={16}/><select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="select-filter"><span className="sr-only">Interest</span><SlidersHorizontal size={16}/><select value={category} onChange={e => setCategory(e.target.value)}><option value="">All interests</option>{categories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className={`chip toggle-chip ${beginner ? 'on' : ''}`}><input type="checkbox" checked={beginner} onChange={e => setBeginner(e.target.checked)}/><Check size={16}/>Beginner friendly</label></div>
@@ -363,7 +404,6 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
                 <div className={discoverStyles.headerLinks}>
                   <button className={discoverStyles.profile} type="button" disabled={busy} onClick={() => setDirectory(true)}><Search size={15} aria-hidden="true"/>Search all clubs</button>
                   {discoverMode === 'foryou' && user && <button className={discoverStyles.profile} type="button" disabled={busy} onClick={() => setOnboarding(true)}><Settings2 size={15} aria-hidden="true"/>Edit interests</button>}
-                  {process.env.NODE_ENV === 'development' && <Link className={discoverStyles.profile} href="/discover/preview"><FlaskConical size={15} aria-hidden="true"/>Swipe preview</Link>}
                 </div>
               </div>
             </header>
@@ -371,7 +411,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
               clubs={discoverClubs} campus={discoverMode === 'foryou' ? user?.campus : undefined}
               layout={deckLayout} onLayout={setDeckLayout} onOpen={setClubDetail}
               onAction={actOnDeck} busy={busy}
-              modalOpen={!!(clubDetail || eventDetail || studentProfile || authOpen || onboarding || aboutOpen)}
+              modalOpen={modalOpen}
               empty={<div className={`surface empty-state ${discoverStyles.empty}`}>
                 {discoverMode === 'foryou' && !user ? <>
                   <Sparkles size={30} aria-hidden="true"/><h2>Make these picks yours</h2>
@@ -410,6 +450,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
 
         {view === 'inbox' && (user ? <InboxPage key={user.id} tab={inboxTab} conversationId={conversationId} onConversation={setConversationId} unread={unread} onUnread={updateUnread} onOpenProfile={openPerson} onOpenClub={openClubById} onOpenEvent={openEventById}/> : <GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in to see your messages and notifications" description="Messages, answers from club managers, and updates from clubs you follow."/>)}
 
+        {view === 'profile' && user && <button className="button button-secondary view-switch" onClick={() => go('dna')}>Explore your Rutgers DNA</button>}
         {view === 'profile' && (user ? <ProfilePage key={user.id} user={user} managedClubs={managedClubs} tab={profileTab} onTab={setProfileTab} refreshKey={profileKey} savedEventIds={saved.event_ids}
             onUser={next => void profileSaved(next)} onOpenClub={setClubDetail} onOpenEvent={openEvent} onFollow={follow} onLater={bookmark} onSaveEvent={saveEvent}
             onManage={() => go('officer')} onLogout={() => void logout()} onExplore={where => go(where)}
@@ -420,7 +461,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
       </>}
       </main>
     </div>
-    <nav className="tab-bar" aria-label="Main navigation">{NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={navView === item.id ? 'active' : ''} onClick={() => go(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={navView === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{user ? 'Profile' : 'Sign in'}</span></button></nav>
+    <nav className="tab-bar" aria-label="Main navigation">{NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={navView === item.id ? 'active' : ''} onClick={() => navigatePrimary(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={navView === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{user ? 'Profile' : 'Sign in'}</span></button></nav>
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <CircleHelp size={18}/> : <Check size={18}/>}<span>{toast.text}</span><button aria-label="Dismiss" onClick={() => setToast(null)}><X size={15}/></button></div>}
     {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} onSuccess={(next, isNew) => void authSuccess(next, isNew)}/>}
     {onboarding && user && <OnboardingDialog user={user} onClose={() => setOnboarding(false)} onSave={next => void profileSaved(next)}/>}
@@ -428,7 +469,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     {eventDetail && <EventDetail key={eventDetail.id} event={eventDetail} saved={saved.event_ids.includes(eventDetail.id)} onSave={() => {if (!user) setEventDetail(null); void saveEvent(eventDetail);}} onClose={() => setEventDetail(null)} onRsvp={rsvp} rsvp={saved.rsvps?.[eventDetail.id] || 'none'} conflicts={detailConflicts}/>}
     {studentProfile && <StudentProfileDialog key={studentProfile} who={studentProfile} onClose={() => setStudentProfile(null)} onOpenClub={openClubById} onOpenConversation={openConversation} onOwnProfile={() => {setStudentProfile(null); setClubDetail(null); go('profile');}}/>}
     {aboutOpen && <Dialog title="About ClRUb" wide onClose={() => setAboutOpen(false)}><p className="dialog-description">ClRUb is an independent student-built project for exploring campus communities. It is not affiliated with Rutgers University or an official university service.</p><section className="about-section"><h3>Real Rutgers clubs and events</h3><p>Rutgers events are real listings from Rutgers getINVOLVED and Rutgers Recreation, collected by <a className="inline-link" href="https://scarletsync.app/events" target="_blank" rel="noreferrer">Scarlet Sync</a> and refreshed every few hours. Only New Brunswick club, arts, recreation, and home-game listings are shown. Confirm details and RSVP on getINVOLVED.</p><p>The clubs in Discover come from student organizations’ public profiles on The Arc, Rutgers’ involvement platform. Each club’s description, meeting time, location, and contact details are taken from its own profile. Many clubs don’t list a meeting time there, and profiles can be out of date, so confirm plans with the club. Fraternities, sororities, and inactive organizations are not included.</p><a className="text-button" href="https://sca.rutgers.edu/campus-involvement/student-organizations" target="_blank" rel="noreferrer">Rutgers’ official involvement website<ArrowUpRight size={15}/></a></section><section className="about-section"><h3>How suggestions work</h3><p>Club descriptions are compared with the interests and goals you choose, using local text features and semantic similarity. Change your interests, show passed clubs again, or browse every club at any time. A similarity score is not a probability, a quality ranking, or a prediction of belonging.</p><p className="method-label">Current method: {method || 'Local text similarity with a varied guest selection'}</p><p>No paid language model or external API key is used. Text matching can miss nuance and can favor longer descriptions, so suggestions mix categories and the full directory is always available.</p></section><section className="about-section"><h3>Answers come with sources</h3><p>The club assistant answers only from the selected club’s published profile and FAQs and shows the excerpts it used. When the information is missing, it says so. Report an inaccurate answer from the club or event details.</p></section><section className="about-section"><h3>Your information stays private</h3><p>Choosing interests is optional. Profiles are private unless you choose to share yours with signed-in students, are stored in this app’s database, and can be deleted from Profile. Follows and RSVPs only add to aggregate counts that officers see. Messages are visible only to the people in the conversation; a question to a club is visible to all of its managers. Don’t enter sensitive personal information in questions or forms.</p></section><p className="about-footer"><ShieldCheck size={18}/>Small local models, visible sources, and the whole directory always one tap away.</p><p className="fine-print">Read the <a className="inline-link" href="/privacy">Privacy Policy</a>.{SUPPORT_EMAIL && <> Questions or requests: <a className="inline-link" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</>}</p></Dialog>}
-  </div>;
+  </div></LayoutGroup>;
 }
 
 // Mulberry32: a tiny seeded generator, so the random order stays put while you swipe.

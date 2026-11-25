@@ -7,7 +7,7 @@ import {type Recommendation} from '@/lib/api';
 import DiscoverDeck, {type DeckAction} from '@/components/discover-deck';
 import styles from '@/components/discover-deck.module.css';
 
-const fixtures = [
+export const fixtures = [
   {id: 'moonlight-makers', name: 'Moonlight Makers', category: 'Technology', campus: 'Busch', color: '#7337ba', description: 'Bring a half-formed idea and leave with something that lights up. This imaginary maker group spends its evenings building small, playful electronics.', interest: 'Creative coding'},
   {id: 'after-rain', name: 'After Rain Studio', category: 'Arts & Music', campus: 'College Avenue', color: '#bd4434', description: 'A fictional illustration circle for swapping sketchbooks, trying new materials, and making zines together.', interest: 'Illustration'},
   {id: 'river-trails', name: 'Raritan Trail Collective', category: 'Outdoors', campus: 'Cook', color: '#247552', description: 'An imaginary outdoors group that sketches local walking routes and shares ideas for low-key trips.', interest: 'Local trails'},

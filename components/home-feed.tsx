@@ -1,37 +1,88 @@
 'use client';
 
-import {useState, type CSSProperties, type ReactNode} from 'react';
-import {ArrowRight, Bookmark, Compass, Heart, LoaderCircle, Search, Settings2, X} from 'lucide-react';
+import Link from 'next/link';
+import {motion, useReducedMotion, useMotionValue, useSpring, useScroll, useTransform, useInView} from 'motion/react';
+import {useRef, useState, type CSSProperties, type ReactNode} from 'react';
+import {ArrowRight, Bookmark, Compass, Heart, LoaderCircle, Search, X} from 'lucide-react';
 import {cleanName, relativeTime, type CampusEvent, type Club, type ForumPost, type Recommendation, type Saved, type User} from '@/lib/api';
 import {CampusMark, ClubArt, categoryIcon} from './visuals';
 import {EventRow} from './event-calendar';
 import styles from './home-feed.module.css';
+import {RibbonFaces} from './ribbon-sculpture';
 
 const topics = ['Technology', 'Arts & Music', 'Volunteering', 'Outdoors', 'Culture', 'Science'];
 type Picks = {status: 'loading'} | {status: 'error'; message: string} | {status: 'ready'; clubs: Recommendation[]};
 
-export function HomeHero({name, onDiscover, onSearch, signedIn}: {
-  name?: string; signedIn: boolean; onDiscover: () => void; onSearch: (query: string) => void;
+export function HomeHero({name, onDiscover, onSearch, signedIn, onDaily, clubs, onClub}: {
+  name?: string; signedIn: boolean; onDiscover: () => void; onSearch: (query: string) => void; onDaily: () => void; clubs?: Club[]; onClub?: (club: Club) => void;
 }) {
   const [query, setQuery] = useState('');
-  return <section className={styles.hero} aria-labelledby="home-title">
+  const reduced = useReducedMotion();
+  const offsetX = useMotionValue(0);
+  const offsetY = useMotionValue(0);
+  const x = useSpring(offsetX, {stiffness:95, damping:19});
+  const y = useSpring(offsetY, {stiffness:95, damping:19});
+  const story = useRef<HTMLElement>(null);
+  const field = useRef<HTMLDivElement>(null);
+  const visible = useInView(field);
+  const {scrollYProgress} = useScroll({target:story, offset:['start start','end 40%']});
+  const rotation = useTransform(scrollYProgress, [0, 1], [-8, 32]);
+  const scale = useTransform(scrollYProgress, [0, 1], [.94, 1.14]);
+  const drift = useTransform(scrollYProgress, [0, 1], [0, -38]);
+  return <section ref={story} className={styles.hero} aria-labelledby="home-title">
     <div className={styles.heroCopy}>
       <p className={styles.heroGreeting}>{name ? `Hey, ${name}.` : 'Rutgers–New Brunswick'}</p>
-      <h1 id="home-title">Your Rutgers.<br/><em>Your people.</em></h1>
-      <p>Find a community on campus, one club at a time.</p>
-      <button className={styles.heroButton} type="button" onClick={onDiscover}><Compass size={19} aria-hidden="true"/>{signedIn ? 'Open your swipe deck' : 'Explore the swipe deck'}</button>
+      <h1 id="home-title">{['College is', 'what you', 'make it.'].map((line, index) =>
+        <span className={styles.line} key={line}><span style={{animationDelay:`${index * 95}ms`}}>{index === 2 ? <em>{line}</em> : line}</span></span>)}</h1>
+      <p>Find your people. Make Rutgers yours.</p>
+      <div className={styles.heroActions}>
+        <button className={styles.heroButton} type="button" onClick={onDiscover}><Compass size={19} aria-hidden="true"/>{signedIn ? 'Open your swipe deck' : 'Explore the swipe deck'}</button>
+        <button className={styles.dailyLink} type="button" onClick={onDaily}>Today’s discovery <ArrowRight size={16} aria-hidden="true"/></button>
+      </div>
       <form className={styles.search} role="search" onSubmit={event => {event.preventDefault(); onSearch(query.trim());}}>
         <Search size={18} aria-hidden="true"/>
         <input aria-label="Search clubs and interests" placeholder="Try “beginner-friendly dance clubs”" value={query} onChange={event => setQuery(event.target.value)} enterKeyHint="search"/>
         <button type="submit">Search</button>
       </form>
+      {process.env.NODE_ENV === 'development' && <Link className={styles.labLink} href="/discover/studio">Development studio</Link>}
     </div>
-    <figure className={styles.photo}><figcaption>Old Queens <span>College Avenue</span></figcaption></figure>
+    <div ref={field} className={styles.heroField} data-visible={visible} onPointerMove={event => {
+      if (reduced || event.pointerType === 'touch') return;
+      const box = event.currentTarget.getBoundingClientRect();
+      offsetX.set(((event.clientX - box.left) / box.width - .5) * 27);
+      offsetY.set(((event.clientY - box.top) / box.height - .5) * 27);
+    }} onPointerLeave={() => {offsetX.set(0); offsetY.set(0);}}>
+      <div className={styles.orbitBackdrop} aria-hidden="true"/>
+      <motion.div className={styles.sculptureScroll} style={reduced ? undefined : {rotate:rotation, scale, y:drift}}>
+        <motion.div className={styles.sculpturePointer} style={reduced ? undefined : {x,y}}>
+          <svg viewBox="0 0 490 455" className={styles.heroOrbit} role="img" aria-label="Interwoven scarlet, peach and lavender ribbons">
+            <RibbonFaces seed={12903}/>
+          </svg>
+        </motion.div>
+      </motion.div>
+      <motion.figure className={styles.photo} style={reduced ? undefined : {x,y}}>
+        <div role="img" aria-label="Old Queens at Rutgers University" className={styles.photoWindow}/>
+        <figcaption>Old Queens <span>College Avenue</span></figcaption>
+      </motion.figure>
+      {onClub && clubs?.slice(0,2).map((club,index) => <motion.button type="button" key={club.id} className={styles.orbitCard}
+        data-position={index} style={reduced ? undefined : {y:drift}} onClick={() => onClub(club)}>
+        <ClubArt category={club.category} color={club.color} logo={club.logo_url} size="small"/>
+        <span><small>{club.verification === 'demo' ? 'Demo club' : club.category}</small><strong>{cleanName(club.name)}</strong></span>
+      </motion.button>)}
+    </div>
+    <div className={styles.storyBeat}>
+      <motion.div initial={reduced ? false : {opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.25}} transition={{duration:.55}}>
+        <span className={styles.heroGreeting}>Daily Discovery</span>
+        <h2>Make room for <em>something new.</em></h2>
+        <p>Explore a few clubs at a time. When you sign in, your interests and the clubs you follow help shape your daily picks.</p>
+        <button type="button" className={styles.dailyLink} onClick={onDaily}>See today’s discovery <ArrowRight size={16} aria-hidden="true"/></button>
+      </motion.div>
+    </div>
   </section>;
 }
 
-export default function HomeFeed({user, picks, browseClubs, clubs, saved, busy, upcoming, campusEvents, suggestedEvents, announcements, onDiscover, onBrowse, onInterests, onRetry, onOpen, onBookmark, onFollow, onDismiss, onProfile, onEvents, onSocial, onOpenEvent, onSaveEvent}: {
-  user: User | null; picks: Picks; browseClubs: Club[]; clubs: Club[]; saved: Saved; busy: boolean;
+export default function HomeFeed({user, dailyCover, dnaCard, picks, browseClubs, clubs, saved, busy, upcoming, campusEvents, suggestedEvents, announcements, onDiscover, onBrowse, onInterests, onRetry, onOpen, onBookmark, onFollow, onDismiss, onProfile, onEvents, onSocial, onOpenEvent, onSaveEvent}: {
+  user: User | null; dailyCover: ReactNode; dnaCard: ReactNode; picks: Picks; browseClubs: Club[]; clubs: Club[]; saved: Saved; busy: boolean;
   upcoming: CampusEvent[]; campusEvents: CampusEvent[]; suggestedEvents: CampusEvent[]; announcements: ForumPost[] | null;
   onDiscover: () => void; onBrowse: (query: string) => void; onInterests: () => void; onRetry: () => void;
   onOpen: (club: Club) => void; onBookmark: (club: Club) => void; onFollow: (club: Club) => void; onDismiss: (club: Club) => void;
@@ -45,7 +96,6 @@ export default function HomeFeed({user, picks, browseClubs, clubs, saved, busy, 
   const collection: (Club | Recommendation)[] = personalized ? picks.clubs : browseClubs;
   const [lead, ...supporting] = collection;
   const matchesCampus = !!user?.campus && campusEvents.some(event => event.campus === user.campus);
-  const interestTiles = user?.interests.length ? user.interests : topics;
 
   function renderClub(club: Club | Recommendation, featured = false) {
     return <article key={club.id} className={styles.club} data-featured={featured} style={{'--club-ink': club.color || '#cc0033'} as CSSProperties}>
@@ -72,6 +122,18 @@ export default function HomeFeed({user, picks, browseClubs, clubs, saved, busy, 
   }
 
   return <div className={styles.feed}>
+    {dailyCover}
+    {dnaCard}
+    {!user && <section className={styles.interests} aria-labelledby="home-interests">
+      <div>
+        <h2 id="home-interests">Follow your curiosity</h2>
+        <p>Pick an interest to explore the club directory.</p>
+      </div>
+      <div className={styles.interestTiles}>{topics.map(interest => {
+        const Icon = categoryIcon(interest);
+        return <button key={interest} type="button" onClick={() => onBrowse(interest)}><Icon size={19} aria-hidden="true"/><span>{interest}</span></button>;
+      })}</div>
+    </section>}
     <section aria-labelledby="home-picks">
       <SectionHeader id="home-picks" title={personalized || (user && picks.status === 'loading') ? 'Made for you' : 'Something new to try'} action={personalized ? 'Open swipe deck' : 'Browse all clubs'} onAction={personalized ? onDiscover : () => onBrowse('')}/>
       {user && picks.status === 'loading' ? <div className={styles.collectionStatus} role="status"><LoaderCircle size={20} className="spin"/>Finding your next campus connection…</div> : <>
@@ -84,38 +146,28 @@ export default function HomeFeed({user, picks, browseClubs, clubs, saved, busy, 
       </>}
     </section>
 
-    <section className={styles.interests} aria-labelledby="home-interests">
-      <div>
-        <h2 id="home-interests">{user ? 'Your Rutgers DNA' : 'Follow your curiosity'}</h2>
-        <p>{user?.interests.length ? 'The interests you chose. Pick one to explore related clubs.' : user ? 'Choose the interests you want ClRUb to use when finding clubs for you.' : 'Pick an interest to explore the club directory.'}</p>
-        {user && <button className={styles.edit} type="button" onClick={onInterests}><Settings2 size={16} aria-hidden="true"/>Edit interests</button>}
-      </div>
-      <div className={styles.interestTiles}>{interestTiles.map(interest => {
-        const Icon = categoryIcon(interest);
-        return <button key={interest} type="button" onClick={() => onBrowse(interest)}><Icon size={19} aria-hidden="true"/><span>{interest}</span></button>;
-      })}</div>
-    </section>
 
-    {user && <section aria-labelledby="home-saved">
+
+    {(campusEvents.length > 0 || (user && upcoming.length > 0)) && <div className={styles.campus}>
+      {campusEvents.length > 0 && <section aria-labelledby="home-events">
+        <SectionHeader id="home-events" title={matchesCampus ? `Happening on ${user?.campus}` : 'Around campus'} action="All events" onAction={onEvents}/>
+        {renderEvents(campusEvents)}
+      </section>}
+      {user && upcoming.length > 0 && <section aria-labelledby="home-upcoming">
+        <SectionHeader id="home-upcoming" title="Your plans" action="Saved events" onAction={() => onProfile('events')}/>
+        {renderEvents(upcoming)}
+      </section>}
+    </div>}
+    {user && communities.length > 0 && <section aria-labelledby="home-saved">
       <SectionHeader id="home-saved" title="Your communities" action="Open profile" onAction={() => onProfile('clubs')}/>
       {communities.length > 0 ? <ul className={styles.communities}>{communities.slice(0, 8).map(club => <li key={club.id}><button type="button" onClick={() => onOpen(club)}><ClubArt category={club.category} color={club.color} logo={club.logo_url}/><span><strong>{cleanName(club.name)}</strong><small>{followedIds.has(club.id) ? 'Following' : 'Saved for later'}</small></span></button></li>)}</ul> : <p className={styles.collectionStatus}>Follow or save a club to keep it here.</p>}
     </section>}
 
-    <div className={styles.campus}>
-      <section aria-labelledby="home-events">
-        <SectionHeader id="home-events" title={matchesCampus ? `Happening on ${user?.campus}` : 'Around campus'} action="All events" onAction={onEvents}/>
-        {campusEvents.length ? renderEvents(campusEvents) : <p className={styles.collectionStatus}>No upcoming events to show right now.</p>}
-      </section>
-      {user && <section aria-labelledby="home-upcoming">
-        <SectionHeader id="home-upcoming" title="Your plans" action="Saved events" onAction={() => onProfile('events')}/>
-        {upcoming.length ? renderEvents(upcoming) : <p className={styles.collectionStatus}>Events you save or RSVP to will appear here.</p>}
-      </section>}
-    </div>
     {user && suggestedEvents.length > 0 && <section aria-labelledby="home-suggested-events">
       <SectionHeader id="home-suggested-events" title="Events for your interests" action="All events" onAction={onEvents}/>
       {renderEvents(suggestedEvents)}
     </section>}
-    {user && <section aria-labelledby="home-announcements">
+    {user && !!announcements?.length && <section aria-labelledby="home-announcements">
       <SectionHeader id="home-announcements" title="From clubs you follow" action="Open Social" onAction={onSocial}/>
       {announcements === null ? <p className={styles.collectionStatus} role="status">Checking for club updates…</p> : announcements.length ? <ul className={styles.announcements}>{announcements.map(item => <li key={item.id}><a href={`/forums/${encodeURIComponent(item.id)}`}><small>{cleanName(item.club_name)} · {relativeTime(item.created_at)}</small><strong>{item.title}</strong><span>{item.body}</span></a></li>)}</ul> : <p className={styles.collectionStatus}>New announcements from clubs you follow will appear here.</p>}
     </section>}

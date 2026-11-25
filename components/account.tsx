@@ -4,6 +4,7 @@ import {Check, LoaderCircle, ShieldCheck} from 'lucide-react';
 import {api, post, put, CAMPUSES, INTERESTS, MAJORS, type AuthConfig, type User} from '@/lib/api';
 import Dialog from './dialog';
 import {categoryIcon} from './visuals';
+import {IdentityArtwork} from './rutgers-dna';
 
 export function ErrorMessage({message}: {message: string}) {return message ? <p className="form-error" role="alert">{message}</p> : null;}
 export function SubmitButton({loading, children, className = 'button button-primary'}: {loading: boolean; children: React.ReactNode; className?: string}) {return <button className={className} type="submit" disabled={loading}>{loading ? <><LoaderCircle className="spin" size={17}/>Working…</> : children}</button>;}
@@ -87,6 +88,7 @@ export function OnboardingDialog({user, onClose, onSave}: {user: User; onClose: 
   }
   return <Dialog title={user.onboarded ? 'Choose your interests' : `Welcome, ${user.display_name.split(' ')[0]}`} onClose={onClose}><p className="dialog-description">Tell us your major and what you’re into, and suggestions start from there. Everything is optional, and you can change it later in Profile.</p><form className="form-stack" onSubmit={submit}>
     <MajorField value={major} onChange={setMajor}/>
+    <div className="identity-editor-preview"><IdentityArtwork interests={interests}/><strong>Live Rutgers DNA preview</strong></div>
     <fieldset><legend>What are you curious about?</legend>
       <div className="interest-picker editorial-interest-picker">{[...new Set([...INTERESTS, ...user.interests])].map(interest => {
         const Icon = categoryIcon(interest);

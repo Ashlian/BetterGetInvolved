@@ -1,9 +1,12 @@
-.experience {
+.experience, .deckPanel {
   --deck-paper: #faf3eb;
   --deck-ink: #260b18;
   --deck-muted: #674b56;
   --deck-line: #ead9d3;
   --deck-wine: #240916;
+}
+
+.experience {
   background: var(--deck-paper);
   color: var(--deck-ink);
   border: 1px solid var(--deck-line);
@@ -50,7 +53,7 @@
 .preview {position: absolute; inset: 0 0 38px; transform-origin: center bottom; background: #fffbf8; color: var(--deck-ink); border: 1px solid #f5b4c2; border-radius: 22px; pointer-events: none; overflow: hidden; box-shadow: 0 10px 25px #17000a42}
 .dragGlow {position: absolute; z-index: -1; inset: -28px; border-radius: 40px; pointer-events: none; background: #e4427250; filter: blur(35px)}
 .card, .listCard {background: #fffbf8; color: var(--deck-ink); border: 1px solid #f3dcd9; border-radius: 22px; overflow: hidden; box-shadow: 0 14px 34px #10000668}
-.card {position: relative; z-index: 3; touch-action: pan-y pinch-zoom; cursor: grab}
+.card {position: relative; z-index: 3; touch-action: pan-y pinch-zoom; cursor: grab; user-select: none; -webkit-user-select: none}
 .card[data-dragging="true"] {cursor: grabbing; user-select: none}
 .card[data-pending="true"] {cursor: progress}
 .card img, .listCard img {pointer-events: none; -webkit-user-drag: none}
