@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 export const metadata: Metadata = {
   title: 'ClRUb — Find your people at Rutgers',
@@ -11,8 +12,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   viewportFit: 'cover',
-  colorScheme: 'light dark',
-  themeColor: [{media: '(prefers-color-scheme: light)', color: '#f2f2f7'}, {media: '(prefers-color-scheme: dark)', color: '#000000'}],
+  colorScheme: 'light',
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {

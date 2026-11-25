@@ -9,9 +9,10 @@ import {ReportForm} from './detail-dialogs';
 import {EventRow} from './event-calendar';
 import {MessageComposer} from './inbox';
 import {ClubArt} from './visuals';
+import {motion, useReducedMotion} from 'motion/react';
 
-export type ProfileTab = 'clubs' | 'events' | 'saved' | 'activity';
-const TABS: {id: ProfileTab; label: string}[] = [{id: 'clubs', label: 'My Clubs'}, {id: 'events', label: 'Events'}, {id: 'saved', label: 'Saved'}, {id: 'activity', label: 'Activity'}];
+export type ProfileTab = 'clubs' | 'events' | 'saved' | 'activity' | 'passport';
+const TABS: {id: ProfileTab; label: string}[] = [{id: 'clubs', label: 'My Clubs'}, {id: 'events', label: 'Events'}, {id: 'saved', label: 'Saved'}, {id: 'activity', label: 'Activity'}, {id:'passport',label:'Passport'}];
 const YEARS = Array.from({length: 15}, (_, i) => 2020 + i);
 const USERNAME = /^(?![.])(?!.*[.]$)[a-z0-9_.]{3,30}$/;
 
@@ -51,6 +52,7 @@ export function ProfilePage({user, managedClubs, tab, onTab, refreshKey, savedEv
   const past = (summary?.events.filter(isPast) ?? []).reverse();
   const shownEvents = eventFilter === 'upcoming' ? upcoming : past;
   const savedEvents = summary?.events.filter(e => savedEventIds.includes(e.id) && !isPast(e)) ?? [];
+  const reducedMotion = useReducedMotion();
 
   return <div className="profile-page">
     <section className="profile-hero surface" aria-labelledby="profile-name">
@@ -90,6 +92,7 @@ export function ProfilePage({user, managedClubs, tab, onTab, refreshKey, savedEv
           <div className="profile-group"><h3>Clubs to revisit</h3>{summary.later.length ? <div className="club-rows">{summary.later.map(club => <ClubRow key={club.id} club={club} note={club.category} onOpen={() => onOpenClub(club)} action={<button className="text-button" onClick={() => void onLater(club)}><X size={14}/>Remove</button>}/>)}</div> : <Empty icon={Bookmark} title="Nothing saved for later" text="Choose Later or Save on a club to keep it on this list." action="Go to Discover" onAction={() => onExplore('discover')}/>}</div>
           <div className="profile-group"><h3>Saved events</h3>{savedEvents.length ? <div className="event-list surface">{savedEvents.map(event => <EventRow key={event.id} event={event} saved onOpen={() => onOpenEvent(event)} onSave={() => void onSaveEvent(event)}/>)}</div> : <Empty icon={CalendarDays} title="No saved events" text="Save an event and it appears here." action="Browse events" onAction={() => onExplore('events')}/>}</div>
         </>
+      : tab === 'passport' ? <ScarletPassport clubs={summary.clubs.length} events={summary.events} savedEventIds={savedEventIds} activity={summary.activity.length} reducedMotion={!!reducedMotion}/>
       : summary.activity.length ? <ul className="activity-list surface">{summary.activity.map(item => <ActivityRow key={`${item.kind}-${item.id}`} item={item}/>)}</ul>
         : <Empty icon={MessageSquare} title="No activity yet" text="Your forum posts and comments show up here." action="Open Social" onAction={() => onExplore('forums')}/>}
     </section>
@@ -97,6 +100,18 @@ export function ProfilePage({user, managedClubs, tab, onTab, refreshKey, savedEv
     <AccountSettings user={user} onLogout={onLogout} onDeleted={onDeleted}/>
     {editing && <EditProfileDialog user={user} onClose={() => setEditing(false)} onSaved={next => {onUser(next); setEditing(false);}} onPhoto={onUser}/>}
   </div>;
+}
+
+function ScarletPassport({clubs,events,savedEventIds,activity,reducedMotion}:{clubs:number;events:ProfileEvent[];savedEventIds:string[];activity:number;reducedMotion:boolean}){
+  const saved=events.filter(event=>savedEventIds.includes(event.id));
+  const explored=new Set(saved.map(event=>event.campus).filter(Boolean)).size>=2;
+  const stamps=[
+    {title:'First club followed',note:'Follow your first campus community.',earned:clubs>0,mark:'01'},
+    {title:'First event saved',note:'Keep an event on your list.',earned:saved.length>0,mark:'02'},
+    {title:'Campus explorer',note:'Save events across two or more campuses.',earned:explored,mark:'03'},
+    {title:'Community voice',note:'Join the conversation with a post or comment.',earned:activity>0,mark:'04'},
+  ];
+  return <section className="scarlet-passport" aria-labelledby="passport-title"><header><span className="passport-overline">RUTGERS · NEW BRUNSWICK</span><h2 id="passport-title">Scarlet Passport</h2><p>A small record of the communities you’re finding.</p></header><div className="passport-stamps">{stamps.map((stamp,index)=><motion.article key={stamp.title} className={`passport-stamp ${stamp.earned?'earned':''}`} initial={false} animate={stamp.earned&&!reducedMotion?{scale:[.92,1.04,1],rotate:[-3,2,0]}:{scale:1,rotate:0}} transition={{duration:.5,delay:index*.07}}><span className="passport-mark">{stamp.mark}</span><strong>{stamp.title}</strong><p>{stamp.note}</p><small>{stamp.earned?'EARNED':'NOT YET EARNED'}</small></motion.article>)}</div><p className="passport-note">Stamps reflect saved clubs, events, and community activity in your account. The app does not track attendance.</p></section>;
 }
 
 function ClubRow({club, note, onOpen, action}: {club: ClubRef; note: string; onOpen: () => void; action?: React.ReactNode}) {
@@ -128,6 +143,7 @@ function AccountSettings({user, onLogout, onDeleted}: {user: User; onLogout: () 
 }
 
 export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User; onClose: () => void; onSaved: (user: User) => void; onPhoto: (user: User) => void}) {
+  const reducedMotion = useReducedMotion();
   const [name, setName] = useState(user.display_name); const [username, setUsername] = useState(user.username ?? ''); const [bio, setBio] = useState(user.bio);
   const [major, setMajor] = useState(user.major); const [year, setYear] = useState(user.grad_year ? String(user.grad_year) : ''); const [campus, setCampus] = useState(user.campus);
   const [interests, setInterests] = useState(user.interests); const [goals, setGoals] = useState(user.goals); const [visibility, setVisibility] = useState(user.profile_visibility); const [messages, setMessages] = useState(user.message_access);
@@ -180,7 +196,7 @@ export function EditProfileDialog({user, onClose, onSaved, onPhoto}: {user: User
         <label>Class year<select value={year} onChange={e => setYear(e.target.value)}><option value="">Not shown</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></label>
         <label>Home campus<select value={campus} onChange={e => setCampus(e.target.value)}><option value="">Not shown</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select></label>
       </div>
-      <fieldset><legend>Interests</legend><div className="interest-picker">{INTERESTS.map(interest => <button key={interest} type="button" className={`interest-option ${interests.includes(interest) ? 'chosen' : ''}`} aria-pressed={interests.includes(interest)} onClick={() => setInterests(interests.includes(interest) ? interests.filter(i => i !== interest) : [...interests, interest])}>{interest}{interests.includes(interest) && <Check size={13}/>}</button>)}</div></fieldset>
+      <fieldset><legend>Interests</legend><div className="interest-picker">{INTERESTS.map((interest,index) => <motion.button key={interest} type="button" className={`interest-option ${interests.includes(interest) ? 'chosen' : ''}`} aria-pressed={interests.includes(interest)} whileTap={reducedMotion?undefined:{scale:.94}} animate={reducedMotion?undefined:{scale:interests.includes(interest)?1.035:1}} transition={{type:'spring',stiffness:360,damping:24,delay:index*.008}} onClick={() => setInterests(interests.includes(interest) ? interests.filter(i => i !== interest) : [...interests, interest])}>{interest}{interests.includes(interest) && <Check size={13}/>}</motion.button>)}</div></fieldset>
       <label>Campus goals <span className="label-note">(private, used only for suggestions)</span><textarea value={goals} onChange={e => setGoals(e.target.value)} rows={2} maxLength={1000} placeholder="What are you hoping to find?"/></label>
       <fieldset className="visibility-choice"><legend>Who can see your profile</legend>
         <label className={`choice ${visibility === 'private' ? 'chosen' : ''}`}><input type="radio" name="visibility" checked={visibility === 'private'} onChange={() => setVisibility('private')}/><Lock size={16}/><span><strong>Only me</strong><small>Others see just your name, plus any clubs you manage.</small></span></label>
