@@ -22,10 +22,10 @@ MAX_PAGES = 20
 # Place names checked in order; the first match wins. Unmatched or online
 # locations keep an empty campus rather than a guessed one.
 CAMPUS_PLACES = [
-    ("Livingston", r"\b(livingstone?|livi|lsc|tillett|lucy stone|beck hall|rbs|business school|quads|kilmer library|jersey mike.?s arena|rutgers athletic center|rac)\b"),
-    ("Busch", r"\b(busch|werblin|hill center|allison road|core building|arc|sec|science and engineering resource|bsc|richard weeks|carr library|math/physics library|library of science and medicine|lsm|shi stadium)\b"),
-    ("Cook", r"\b(cook|neilson|foran|blake hall|food science|loree|red oak|gardens)\b"),
-    ("Douglass", r"\b(douglass|dcc|voorhees chapel|jameson|mabel smith|trayes)\b"),
+    ("Livingston", r"\b(livingstone?|livi|lsc|tillett|lucy stone|beck hall|rbs|business school|quads|kilmer library|carr library|jersey mike.?s arena|rutgers athletic center|rac)\b"),
+    ("Busch", r"\b(busch|werblin|hill center|allison road|core building|arc|sec|science and engineering resource|bsc|richard weeks|math/physics library|library of science and medicine|lsm|shi stadium)\b"),
+    ("Cook", r"\b(cook|neilson|foran|blake hall|food science|red oak|gardens)\b"),
+    ("Douglass", r"\b(douglass|dcc|voorhees chapel|jameson|mabel smith|trayes|loree)\b"),
     ("College Avenue", r"\b(college ave(?:nue)?|casc|cac|the yard|scott hall|murray hall|brower|alexander library|hamilton street|zimmerli|kirkpatrick|voorhees mall|student activities center|sac|honors college|frelinghuysen|hardenbergh|old queens|academic building)\b"),
 ]
 INVOLVEMENT_CATEGORIES = {"club", "arts", "recreation", "intramural"}
