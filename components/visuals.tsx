@@ -28,3 +28,8 @@ export function ClubArt({category, color, logo, size = 'regular'}: {category: st
   const Icon = categoryIcon(category);
   return <span className={`club-tile tile-${size}`} style={{'--club': color || '#326BDA'} as React.CSSProperties} aria-hidden="true"><Icon strokeWidth={1.75}/></span>;
 }
+
+/** The ClRUb logo. Its button or link supplies the accessible name. */
+export function Wordmark() {
+  return <span className="wordmark" aria-hidden="true">Cl<span>RU</span>b</span>;
+}

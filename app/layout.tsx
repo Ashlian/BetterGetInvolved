@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from 'next';
+import {DM_Sans} from 'next/font/google';
 import './globals.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {ThemeScript} from '@/components/theme';
+
+// Used by the ClRUb wordmark only. Served from this site, so browsers never contact Google for it.
+const dmSans = DM_Sans({subsets: ['latin'], weight: '600', variable: '--font-wordmark'});
 
 export const metadata: Metadata = {
   title: 'ClRUb — Find your people at Rutgers',
@@ -17,5 +21,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
-  return <html lang="en" suppressHydrationWarning><body><ThemeScript/>{children}</body></html>;
+  return <html lang="en" className={dmSans.variable} suppressHydrationWarning><body><ThemeScript/>{children}</body></html>;
 }
