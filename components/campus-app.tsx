@@ -2,16 +2,15 @@
 
 import {LayoutGroup} from 'motion/react';
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type MouseEvent} from 'react';
 import {ArrowUpRight, Bookmark, GraduationCap, CalendarDays, Check, ChevronDown, ChevronRight, CircleHelp, Compass, FlaskConical, House, LoaderCircle, LogIn, MessagesSquare, Radio, Search, Settings2, ShieldCheck, Shuffle, SlidersHorizontal, Sparkles, Users, UserRound, X} from 'lucide-react';
-import {api, post, cleanName, dateKey, eventEnd, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type ForYou, type DiscoverMode, type ClubSearchResult, type SearchUnderstanding, type CampusEvent, type ForumPost, type LiveStatus, type Unread, type User, type Saved} from '@/lib/api';
+import {api, post, put, cleanName, dateKey, eventEnd, overlaps, relativeTime, CAMPUSES, REFERENCE_DATE, type Club, type Recommendation, type ForYou, type DiscoverMode, type ClubSearchResult, type SearchUnderstanding, type CampusEvent, type ForumPost, type LiveStatus, type Unread, type User, type Saved} from '@/lib/api';
 import {AuthDialog, OnboardingDialog} from './account';
 import UserAvatar from './avatar';
 import {ProfilePage, StudentProfileDialog, type ProfileTab} from './profile';
-import HomeFeed, {HomeHero} from './home-feed';
-import {DailyCover, DailyDeck} from './daily-discovery';
-import signatureStyles from './signature.module.css';
-import RutgersDNA from './rutgers-dna';
+import HomeFeed from './home-feed';
+import {DailyDeck} from './daily-discovery';
+import {DesignDNA, DesignHome, DesignNav, DesignUniverse} from './campus-design';
 import {useDailyDiscovery} from './use-daily-discovery';
 import ClubCard from './club-card';
 import Dialog from './dialog';
@@ -23,17 +22,21 @@ import InboxPage, {SocialTabs, type InboxTab} from './inbox';
 import DiscoverDeck, {type DeckAction} from './discover-deck';
 import discoverStyles from './discover-deck.module.css';
 
-type View = 'home' | 'daily' | 'dna' | 'discover' | 'events' | 'forums' | 'inbox' | 'profile' | 'officer';
+type View = 'home' | 'daily' | 'dna' | 'universe' | 'discover' | 'events' | 'forums' | 'inbox' | 'profile' | 'officer';
+const viewPaths: Record<View, string> = {home: '/', discover: '/discover', daily: '/discover/daily', universe: '/universe', dna: '/dna', events: '/events', forums: '/forums', inbox: '/inbox', profile: '/profile', officer: '/officer'};
+const forYouPath = '/discover/for-you';
+const directoryPath = '/discover/directory';
+
 const NO_UNREAD: Unread = {messages: 0, notifications: 0};
 const UNREAD_POLL_MS = 60000;
 const EMPTY_SAVED: Saved = {club_ids: [], event_ids: [], dismissed_ids: [], maybe_later_ids: [], rsvps: {}};
 const NAV = [{id: 'home' as const, title: 'Home', icon: House}, {id: 'discover' as const, title: 'Discover', icon: Compass}, {id: 'events' as const, title: 'Events', icon: CalendarDays}, {id: 'forums' as const, title: 'Social', icon: MessagesSquare}];
-const viewTitles: Record<View, string> = {home: 'Home', daily: 'Daily Discovery', dna: 'Rutgers DNA', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Social', profile: 'Profile', officer: 'Club manager'};
+const viewTitles: Record<View, string> = {home: 'Home', daily: 'Daily Discovery', dna: 'Rutgers DNA', universe: 'Rutgers Universe', discover: 'Discover', events: 'Events', forums: 'Social', inbox: 'Social', profile: 'Profile', officer: 'Club manager'};
 // The site's contact address comes from the environment (set in Vercel and .env), not the code.
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || '';
 
-export default function CampusApp({initialClubId, initialEventId, initialForumPostId, initialView = 'home'}: {initialClubId?: string; initialEventId?: string; initialForumPostId?: string; initialView?: View} = {}) {
-  const [view, setView] = useState<View>(initialView); const [directory, setDirectory] = useState(false);
+export default function CampusApp({initialClubId, initialEventId, initialForumPostId, initialView = 'home', initialMode = 'random', initialDirectory = false}: {initialClubId?: string; initialEventId?: string; initialForumPostId?: string; initialView?: View; initialMode?: DiscoverMode; initialDirectory?: boolean} = {}) {
+  const [view, setView] = useState<View>(initialView); const [directory, setDirectory] = useState(initialDirectory);
   const [clubs, setClubs] = useState<Club[]>([]); const [recommendations, setRecommendations] = useState<Recommendation[]>([]); const [method, setMethod] = useState('');
   const [events, setEvents] = useState<CampusEvent[]>([]); const [user, setUser] = useState<User | null>(null); const [saved, setSaved] = useState<Saved>(EMPTY_SAVED);
   const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(''); const [toast, setToast] = useState<{text: string; error?: boolean} | null>(null);
@@ -54,7 +57,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const rankedHomeError = homePicksError && homePicksError.account === user?.id ? homePicksError.message : '';
   const daily = useDailyDiscovery(user?.id, now, homePicks?.day === dailyDate ? rankedHome : undefined, clubs, saved, !loading && !loadError);
   const openedInitial = useRef(false);
-  const [discoverMode, setDiscoverModeState] = useState<DiscoverMode>('random');
+  const [discoverMode, setDiscoverModeState] = useState<DiscoverMode>(initialMode);
   const [forYou, setForYou] = useState<{account: string; result: ForYou} | null>(null);
   const [forYouError, setForYouError] = useState<{account: string; message: string} | null>(null);
   const [forYouRetry, setForYouRetry] = useState(0);
@@ -62,7 +65,11 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const deckRequest = useRef(false);
   const uncertainDeckWrites = useRef(new Set<string>());
   const [shuffleSeed, setShuffleSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
+  function syncPath(path: string) {
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+  }
   function setDiscoverMode(mode: DiscoverMode) {
+    syncPath(mode === 'foryou' ? forYouPath : viewPaths.discover);
     setDiscoverModeState(mode);
     setDeckLayout('swipe');
   }
@@ -120,7 +127,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     return () => {active = false;};
   }, [view, directory, discoverMode, user, saved.club_ids, saved.maybe_later_ids, saved.dismissed_ids, forYouRetry]);
   useEffect(() => {
-    if ((view !== 'home' && view !== 'daily') || !user || loading || loadError) return;
+    if ((view !== 'home' && view !== 'daily' && view !== 'universe') || !user || loading || loadError) return;
     let active = true;
     setHomePicksError(null);
     void api<ForYou>('/for-you?limit=6').then(result => {
@@ -167,13 +174,36 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   function openConversation(id: string) {setClubDetail(null); setStudentProfile(null); setInboxTab('messages'); setConversationId(id); go('inbox');}
   function openClubById(id: string) {const club = clubs.find(c => c.id === id); if (club) {setStudentProfile(null); setClubDetail(club);} else notify('That club could not be found.', true);}
   function openEventById(id: string) {void api<CampusEvent>(`/events/${encodeURIComponent(id)}`).then(openEvent).catch(e => notify((e as Error).message, true));}
-  function go(next: View, allClubs = false) {setView(next); if (next === 'discover') {setDirectory(allClubs); if (!allClubs) setDeckLayout('swipe');} window.scrollTo({top: 0, behavior: 'instant'});}
+  useEffect(() => {
+    function restoreView() {
+      const path = window.location.pathname;
+      const matched = (Object.keys(viewPaths) as View[]).find(item => viewPaths[item] === path);
+      setView(path === forYouPath || path === directoryPath ? 'discover' : matched ?? initialView);
+      setDirectory(path === directoryPath);
+      setDiscoverModeState(path === forYouPath ? 'foryou' : 'random');
+      setDeckLayout('swipe');
+    }
+    window.addEventListener('popstate', restoreView);
+    return () => window.removeEventListener('popstate', restoreView);
+  }, [initialView]);
+  function go(next: View, allClubs = false, mode: DiscoverMode = discoverMode) {
+    syncPath(next === 'discover' ? allClubs ? directoryPath : mode === 'foryou' ? forYouPath : viewPaths.discover : viewPaths[next]);
+    setView(next);
+    if (next === 'discover') {setDirectory(allClubs); setDiscoverModeState(mode); if (!allClubs) setDeckLayout('swipe');}
+    window.scrollTo({top: 0, behavior: 'instant'});
+  }
+  function followDesignLink(event: MouseEvent<HTMLAnchorElement>) {
+    const path = event.currentTarget.pathname;
+    const next = (Object.keys(viewPaths) as View[]).find(item => viewPaths[item] === path);
+    if (!next || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    go(next, false, 'random');
+  }
   function searchDirectory(term: string) {
     setQuery(term); setCampus(''); setCategory(''); setBeginner(false); go('discover', true);
   }
   function openDiscover(mode: DiscoverMode) {
-    setDiscoverMode(mode);
-    go('discover');
+    go('discover', false, mode);
   }
   function navigatePrimary(next: View) {
     if (next === 'discover') openDiscover('random');
@@ -288,7 +318,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     const reopen = signInFromClub.current && nextClubs?.find(c => c.id === signInFromClub.current); signInFromClub.current = null;
     if (isNew) setOnboarding(true); else {if (reopen) setClubDetail(reopen); notify(`Welcome back, ${next.display_name.split(' ')[0]}.`);}
   }
-  async function logout() {try {await post('/auth/logout'); setUser(null); setSaved(EMPTY_SAVED); setView('home'); void refreshClubs().catch(e => notify(e.message, true)); void refreshRecommendations().catch(e => notify(e.message, true)); notify('Signed out.');} catch (e) {notify((e as Error).message, true);}}
+  async function logout() {try {await post('/auth/logout'); setUser(null); setSaved(EMPTY_SAVED); go('home'); void refreshClubs().catch(e => notify(e.message, true)); void refreshRecommendations().catch(e => notify(e.message, true)); notify('Signed out.');} catch (e) {notify((e as Error).message, true);}}
   async function profileSaved(next: User) {setHomePicks(null); setHomePicksError(null); setUser(next); setOnboarding(false); await refreshRecommendations().catch(e => notify(e.message, true));}
   async function rsvp(status: 'going' | 'interested' | 'none') {if (!eventDetail) return; if (!user) {setEventDetail(null); setAuthOpen(true); return;} const result = await post<{status: string}>(`/events/${eventDetail.id}/rsvp`, {status}); setSaved(s => {const rsvps = {...s.rsvps}; if (result.status === 'none') delete rsvps[eventDetail.id]; else rsvps[eventDetail.id] = result.status as 'going' | 'interested'; return {...s, rsvps};}); notify(status === 'none' ? 'RSVP cleared.' : status === 'going' ? 'Marked as going.' : 'Marked as interested.');}
   function openEvent(event: CampusEvent) {setClubDetail(null); setEventDetail(event);}
@@ -318,7 +348,7 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
   const isOfficer = !!user && (user.role === 'admin' || (user.managed_club_ids?.length ?? 0) > 0);
   const managedClubs = user ? clubs.filter(c => user.managed_club_ids?.includes(c.id)) : [];
   const subtitle: Record<View, string> = {
-    home: '', daily: '', dna: '',
+    home: '', daily: '', dna: '', universe: '',
     discover: directory ? `Search all ${clubs.length} clubs by name, interest, or a plain-language request.` : '',
     events: eventSource === 'live' ? 'Real Rutgers–New Brunswick club, recreation, and game listings.' : 'Sample events from the demo clubs, for trying saves and RSVPs.',
     forums: 'Ask questions, share experiences, and talk about your clubs.',
@@ -326,11 +356,47 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
     profile: '',
     officer: 'Update the clubs you own: profile, tags, contacts, questions, and events.',
   };
+  const designView = ['home', 'daily', 'dna', 'universe'].includes(view) || view === 'discover' && !directory && deckLayout === 'swipe';
+  const designControls = <>
+    <button disabled={busy} aria-pressed={discoverMode === 'random'} onClick={() => setDiscoverMode('random')}>Discover</button>
+    <button disabled={busy} aria-pressed={discoverMode === 'foryou'} onClick={() => setDiscoverMode('foryou')}>For You</button>
+    <button disabled={busy} onClick={() => go('daily')}>Daily Discovery</button>
+    <button disabled={busy} onClick={() => searchDirectory('')}>Search all clubs</button>
+    {discoverClubs.length > 0 && <button disabled={busy} onClick={() => setDeckLayout('list')}>List view</button>}
+    {discoverMode === 'foryou' && user && <button onClick={() => setOnboarding(true)}>Edit interests</button>}
+    {discoverMode === 'random' && discoverClubs.length > 1 && <button disabled={busy} onClick={() => setShuffleSeed(Math.floor(Math.random() * 2 ** 31))}>Shuffle the queue</button>}
+    {(saved.dismissed_ids.length > 0 || (!user && sessionSkipped.length > 0)) && <button disabled={busy} onClick={() => void resetPasses()}>Show passed clubs again</button>}
+  </>;
+  const designFooter = <nav className="campus-design" aria-label="More campus features"><div className="design-tools">
+    <button onClick={() => go('events')}>Events</button>
+    <button onClick={() => go('forums')}>Social{unreadTotal > 0 ? ` (${unreadTotal} unread)` : ''}</button>
+    <button onClick={() => openProfile('clubs')}>{user ? 'Profile' : 'Sign in'}</button>
+    {isOfficer && <button onClick={() => go('officer')}>Club manager</button>}
+  </div></nav>;
+  async function saveDNA(interests: string[]) {
+    if (!user || busy) return;
+    setBusy(true);
+    try {await profileSaved(await put<User>('/profile', {interests}));}
+    catch (error) {notify((error as Error).message, true);}
+    finally {setBusy(false);}
+  }
+  async function shareDNA() {
+    if (!user) return;
+    const title = 'My Rutgers DNA';
+    const text = user.interests.length ? `${title} · ${user.interests.join(', ')}` : title;
+    const url = new URL('/dna', window.location.origin).href;
+    try {
+      if (navigator.share) await navigator.share({title, text, url});
+      else {await navigator.clipboard.writeText(`${text}\n${url}`); notify('Rutgers DNA copied.');}
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) notify('Could not share your Rutgers DNA.', true);
+    }
+  }
   const avatar = <UserAvatar name={user?.display_name} url={user?.avatar_url} size={36}/>;
 
-  return <LayoutGroup><div className={view === 'daily' ? `app-shell ${signatureStyles.focusedShell}` : 'app-shell editorial-shell'} data-home={view === 'home'}>
+  return <LayoutGroup><div className={designView ? 'app-shell design-shell' : 'app-shell editorial-shell'} data-home={view === 'home'}>
     <a href="#main-content" className="skip-link">Skip to content</a>
-    <header className="site-header">
+    {designView ? <DesignNav view={view} user={user} onNavigate={followDesignLink}/> : <header className="site-header">
       <div className="site-header-inner">
         <button className="brand plain-button" onClick={() => go('home')} aria-label="ClRUb, Home">
           <span className="brand-mark"><GraduationCap size={22} aria-hidden="true"/></span>
@@ -345,20 +411,22 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
           {user ? <button className="icon-button" onClick={() => openProfile('clubs')} aria-current={view === 'profile' ? 'page' : undefined} aria-label="Open profile">{avatar}</button> : <button className="button button-primary" onClick={() => setAuthOpen(true)}>Sign in</button>}
         </div>
       </div>
-    </header>
-    <div className="workspace">
-      <main className="main-content" id="main-content">
-        {view === 'home' ? <HomeHero name={firstName} signedIn={!!user} onDiscover={openHomeDeck} onSearch={searchDirectory} clubs={homeRecommendations.length ? homeRecommendations : browseClubs} onClub={setClubDetail}
-          onDaily={() => document.getElementById('daily-cover-title')?.focus()}/>
-          : ((view !== 'discover' && view !== 'daily' && view !== 'dna') || directory && view === 'discover' || loading || loadError) && <div className="page-header"><div><h1>{viewTitles[view]}</h1>{subtitle[view] && <p className="header-subtitle">{subtitle[view]}</p>}</div></div>}
+    </header>}
+    <div className={designView ? undefined : "workspace"}>
+      <main className={designView ? 'design-main' : 'main-content'} id="main-content">
+        {view === 'home' && <div className="campus-design"><DesignHome
+          club={daily.remaining[0] ?? homeRecommendations[0] ?? browseClubs[0] ?? clubs[0]}
+          event={campusEvents[0]?.is_demo ? undefined : campusEvents[0]}
+          firstName={firstName} onClub={setClubDetail} onEvent={openEvent} onEvents={() => go('events')} onNavigate={followDesignLink}
+          dailyLabel={dailyAvailability === 'guest' ? 'Sign in' : dailyAvailability === 'error' ? 'Try again' : dailyAvailability === 'empty' ? 'Edit interests' : 'Explore'}
+          dailyNotice={user && dailyAvailability === 'loading' ? 'Arranging today’s picks…' : dailyAvailability === 'error' ? 'Today’s picks couldn’t load.' : undefined}
+          onDaily={() => dailyAvailability === 'guest' ? setAuthOpen(true) : dailyAvailability === 'error' ? retryHomePicks() : dailyAvailability === 'empty' ? setOnboarding(true) : go('daily')}/>
+          </div>}
+        {!designView && <div className="page-header"><div><h1>{viewTitles[view]}</h1>{subtitle[view] && <p className="header-subtitle">{subtitle[view]}</p>}</div></div>}
       {loading ? <div className="page-loading" role="status"><LoaderCircle size={28} className="spin"/><p>Loading clubs and events…</p></div> : loadError ? <div className="surface empty-state"><CircleHelp size={30}/><h2>Unable to load clubs and events</h2><p>{loadError}</p><p className="fine-print">Make sure the local API is running on port 8000, then try again.</p><button className="button button-primary" onClick={() => void load()}>Try again</button></div> : <>
-        {view === 'home' && <HomeFeed
+        {view === 'home' && <div className="design-support"><HomeFeed
           user={user} clubs={clubs} browseClubs={browseClubs} saved={saved} busy={busy}
-          dailyCover={<DailyCover name={firstName} now={now} identity={user?.id} daily={daily} availability={dailyAvailability}
-            onStart={() => go('daily')} onSignIn={() => setAuthOpen(true)} onInterests={() => setOnboarding(true)} onRetry={retryHomePicks}/>}
-          dnaCard={user ? <RutgersDNA user={user} followed={followedClubs} preview onOpen={() => go('dna')}
-            onEdit={() => setOnboarding(true)} onRelated={searchDirectory} onClub={setClubDetail}/>
-            : <RutgersDNA user={{interests:[]}} followed={[]} preview guest onEdit={() => setAuthOpen(true)} onRelated={searchDirectory} onClub={setClubDetail}/>}
+          dailyCover={null} dnaCard={null}
           picks={rankedHomeError ? {status: 'error', message: rankedHomeError}
             : rankedHome ? {status: 'ready', clubs: homeRecommendations} : {status: 'loading'}}
           upcoming={myUpcoming} campusEvents={campusEvents} suggestedEvents={suggestedEvents} announcements={announcements}
@@ -367,30 +435,30 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
           onOpen={setClubDetail} onBookmark={club => void bookmark(club)} onFollow={club => void follow(club)} onDismiss={club => void dismissClub(club)}
           onProfile={openProfile} onEvents={() => go('events')} onSocial={() => go('forums')}
           onOpenEvent={openEvent} onSaveEvent={event => void saveEvent(event)}
-        />}
+        /></div>}
 
-        {view === 'daily' && user && <DailyDeck daily={daily} now={now} name={firstName} identity={user.id} campus={user.campus} busy={busy} modalOpen={modalOpen}
+        {view === 'daily' && <div className="campus-design">{!user ? <section className="discover-page"><div className="discover-intro"><h1>Daily<br/><i>Discovery.</i></h1></div><GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in for your daily picks" description="Explore clubs picked around your interests."/></section> : dailyAvailability === 'loading' || dailyAvailability === 'error' ? <section className="discover-page"><div className="discover-intro"><h1>Daily<br/><i>Discovery.</i></h1></div><div>{dailyAvailability === 'loading' ? <p role="status">Arranging today’s picks…</p> : <><p role="alert">{rankedHomeError}</p><button onClick={retryHomePicks}>Try again</button></>}</div></section> : <DailyDeck daily={daily} identity={user.id} campus={user.campus} busy={busy} modalOpen={modalOpen}
           onAction={async (action, club) => {
             if (!daily.remaining.some(item => item.id === club.id)) return false;
             const confirmed = await actOnDeck(action, club);
             if (confirmed) daily.recordAction(club.id, action);
             return confirmed;
           }}
-          onOpen={setClubDetail} onHome={() => {
-            go('home');
-            requestAnimationFrame(() => document.getElementById('daily-cover-title')?.focus());
-          }} onExplore={openHomeDeck} onSaved={() => openProfile('clubs')} onDNA={() => go('dna')}
-        />}
-        {view === 'dna' && user && <RutgersDNA user={user} followed={followedClubs}
-          onHome={() => go('home')} onEdit={() => setOnboarding(true)} onRelated={interest => interest ? searchDirectory(interest) : openHomeDeck()} onClub={setClubDetail}/>}
+          onOpen={setClubDetail} onHome={() => go('home')} onExplore={openHomeDeck} onSaved={() => openProfile('clubs')} onDNA={() => go('dna')}
+        />}</div>}
+        {view === 'dna' && <div className="campus-design"><DesignDNA user={user} busy={busy} onSave={interests => void saveDNA(interests)}
+          onProfile={() => openProfile('clubs')} onEdit={() => setOnboarding(true)} onShare={() => void shareDNA()} onRelated={openHomeDeck}/></div>}
+        {view === 'universe' && <div className="campus-design"><DesignUniverse user={user}
+          ranked={user ? rankedHome ?? [] : recommendations} followed={followedClubs} onClub={setClubDetail}
+          onInterest={searchDirectory} onProfile={() => openProfile('clubs')}/></div>}
 
         {view === 'discover' && <>
-          {directory ? <><button className="button button-secondary view-switch" onClick={() => setDirectory(false)}><Compass size={16}/>Back to club deck</button><div className="filter-bar"><div className="search-input"><Search size={18}/><input aria-label="Search clubs and interests" placeholder="Describe what you’re into, like “pickup basketball” or “premed volunteering”" value={query} onChange={e => setQuery(e.target.value)} enterKeyHint="search"/>{query && <button className="icon-button clear-button" aria-label="Clear search" onClick={() => setQuery('')}><X size={15}/></button>}</div><label className="select-filter"><span className="sr-only">Campus</span><Compass size={16}/><select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="select-filter"><span className="sr-only">Interest</span><SlidersHorizontal size={16}/><select value={category} onChange={e => setCategory(e.target.value)}><option value="">All interests</option>{categories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className={`chip toggle-chip ${beginner ? 'on' : ''}`}><input type="checkbox" checked={beginner} onChange={e => setBeginner(e.target.checked)}/><Check size={16}/>Beginner friendly</label></div>
+          {directory ? <><button className="button button-secondary view-switch" onClick={() => go('discover')}><Compass size={16}/>Back to club deck</button><div className="filter-bar"><div className="search-input"><Search size={18}/><input aria-label="Search clubs and interests" placeholder="Describe what you’re into, like “pickup basketball” or “premed volunteering”" value={query} onChange={e => setQuery(e.target.value)} enterKeyHint="search"/>{query && <button className="icon-button clear-button" aria-label="Clear search" onClick={() => setQuery('')}><X size={15}/></button>}</div><label className="select-filter"><span className="sr-only">Campus</span><Compass size={16}/><select value={campus} onChange={e => setCampus(e.target.value)}><option value="">All campuses</option>{CAMPUSES.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className="select-filter"><span className="sr-only">Interest</span><SlidersHorizontal size={16}/><select value={category} onChange={e => setCategory(e.target.value)}><option value="">All interests</option>{categories.map(c => <option key={c}>{c}</option>)}</select><ChevronDown size={14}/></label><label className={`chip toggle-chip ${beginner ? 'on' : ''}`}><input type="checkbox" checked={beginner} onChange={e => setBeginner(e.target.checked)}/><Check size={16}/>Beginner friendly</label></div>
             <p className="result-count" role="status">{searching ? 'Searching…' : `${searchClubs.length} ${searchClubs.length === 1 ? 'club' : 'clubs'}`}{searchClubs.length > 0 && searchClubs.every(c => c.verification === 'demo') && <span> · All are demo organizations</span>}</p>{query.trim() && !searching && understood && <SearchReading understood={understood}/>}{searchError && <p className="form-error" role="alert">{searchError}</p>}
             <div className={`club-grid ${searching ? 'is-loading' : ''}`} aria-busy={searching}>{searchClubs.map(club => <ClubCard key={club.id} club={club} following={saved.club_ids.includes(club.id)} onOpen={() => setClubDetail(club)} onFollow={() => void follow(club)}/>)}</div>
             {!searching && !searchClubs.length && !searchError && <div className="surface empty-state"><Search size={28}/><h3>No clubs match</h3><p>Try a broader search, or clear the filters.</p><button className="button button-secondary" onClick={() => {setQuery(''); setCampus(''); setCategory(''); setBeginner(false);}}>Clear filters</button></div>}</>
-          : <section className={discoverStyles.experience} aria-labelledby="discover-title">
-            <header className={discoverStyles.header}>
+          : <section className={designView ? "campus-design" : discoverStyles.experience} aria-labelledby="discover-title">
+            {!designView && <header className={discoverStyles.header}>
               <div className={discoverStyles.heading}>
                 <span className={discoverStyles.eyebrow}><Compass size={17} aria-hidden="true"/>Rutgers club discovery</span>
                 <h1 id="discover-title">{discoverMode === 'random' ? <>Meet your<br/><em>next club.</em></> : <>Your interests.<br/><em>Your Rutgers.</em></>}</h1>
@@ -402,14 +470,15 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
                   <button type="button" aria-pressed={discoverMode === 'foryou'} disabled={busy} onClick={() => setDiscoverMode('foryou')}><Sparkles size={16} aria-hidden="true"/>For You</button>
                 </div>
                 <div className={discoverStyles.headerLinks}>
-                  <button className={discoverStyles.profile} type="button" disabled={busy} onClick={() => setDirectory(true)}><Search size={15} aria-hidden="true"/>Search all clubs</button>
+                  <button className={discoverStyles.profile} type="button" disabled={busy} onClick={() => searchDirectory('')}><Search size={15} aria-hidden="true"/>Search all clubs</button>
                   {discoverMode === 'foryou' && user && <button className={discoverStyles.profile} type="button" disabled={busy} onClick={() => setOnboarding(true)}><Settings2 size={15} aria-hidden="true"/>Edit interests</button>}
                 </div>
               </div>
-            </header>
+            </header>}
             <DiscoverDeck key={`${user?.id ?? 'guest'}:${discoverMode}`}
               clubs={discoverClubs} campus={discoverMode === 'foryou' ? user?.campus : undefined}
-              layout={deckLayout} onLayout={setDeckLayout} onOpen={setClubDetail}
+              layout={deckLayout} onLayout={setDeckLayout}
+              design={{label: `${discoverMode === 'foryou' ? 'For You' : 'Discover'} · ${discoverClubs.length} to explore`, controls: designControls}} onOpen={setClubDetail}
               onAction={actOnDeck} busy={busy}
               modalOpen={modalOpen}
               empty={<div className={`surface empty-state ${discoverStyles.empty}`}>
@@ -430,15 +499,15 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
                 </> : <>
                   <Check size={30} aria-hidden="true"/><h2>{clubs.length ? 'You’re all caught up' : 'No clubs available yet'}</h2>
                   <p>{clubs.length ? 'Find your follows and bookmarks in your profile, or see every club in the directory.' : 'Check the directory again when more clubs are available.'}</p>
-                  <button className="button button-primary" onClick={() => setDirectory(true)}>Browse all clubs</button>
+                  <button className="button button-primary" onClick={() => searchDirectory('')}>Browse all clubs</button>
                   {discoverMode === 'foryou' && <button className="text-button" onClick={() => setDiscoverMode('random')}>Explore random clubs</button>}
                 </>}
               </div>}/>
             {discoverMode === 'foryou' && personalizationError && discoverClubs.length > 0 && <p className="fine-print" role="status">Showing your last picks. <button className="inline-link" onClick={() => setForYouRetry(value => value + 1)}>Refresh recommendations</button></p>}
-            <div className={discoverStyles.utilities}>
+            {!designView && <div className={discoverStyles.utilities}>
               {discoverMode === 'random' && discoverClubs.length > 1 && <button type="button" disabled={busy} onClick={() => setShuffleSeed(Math.floor(Math.random() * 2 ** 31))}><Shuffle size={15} aria-hidden="true"/>Shuffle the queue</button>}
               {(saved.dismissed_ids.length > 0 || (!user && sessionSkipped.length > 0)) && <button type="button" disabled={busy} onClick={() => void resetPasses()}>Show passed clubs again</button>}
-            </div>
+            </div>}
           </section>}
 
         </>}
@@ -457,11 +526,12 @@ export default function CampusApp({initialClubId, initialEventId, initialForumPo
             onDeleted={() => {setUser(null); setSaved(EMPTY_SAVED); go('home'); void refreshClubs().catch(e => notify(e.message, true)); void refreshRecommendations().catch(e => notify(e.message, true)); notify('Your account and personal data were deleted.');}}/>
           : <GuestPrompt onSignIn={() => setAuthOpen(true)} title="Sign in to see your profile" description="Your clubs, events, and saved items in one place. Profiles are private unless you choose to share them."/>)}
         {view === 'officer' && (isOfficer ? <OfficerPanel allEvents={events} categories={categories} onView={setClubDetail} onRefresh={() => {void Promise.all([api<Club[]>('/clubs'), api<CampusEvent[]>('/events')]).then(([nextClubs, nextEvents]) => {setClubs(nextClubs); setEvents(nextEvents); setEventResults(nextEvents);}).catch(e => notify(e.message, true));}}/> : (user ? <div className="surface empty-state guest-prompt"><span className="empty-symbol"><Users size={28}/></span><h2>You don’t manage any clubs</h2><p>The club manager appears once you’re listed as an owner of a club. Ask the site admins to add your ScarletMail address.</p></div> : <GuestPrompt onSignIn={() => setAuthOpen(true)} title="For club owners" description="Sign in with your ScarletMail to manage the clubs you own."/>))}
-        <footer className="page-footer"><p>ClRUb is an independent student project, not affiliated with Rutgers University. Rutgers events come from getINVOLVED and Rutgers Recreation via Scarlet Sync; clubs come from their public profiles on The Arc.</p><p className="footer-links"><button className="inline-link" onClick={() => setAboutOpen(true)}>About ClRUb</button><a className="inline-link" href="/privacy">Privacy Policy</a>{SUPPORT_EMAIL && <a className="inline-link" href={`mailto:${SUPPORT_EMAIL}`}>Contact</a>}</p>{view === 'home' && <p className="photo-credit">Old Queens photo by <a className="inline-link" href="https://commons.wikimedia.org/wiki/File:Old_Queens_-_Rutgers_University_(55142886116).jpg">Ajay Suresh</a>, <a className="inline-link" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, resized and cropped.</p>}</footer>
+        {designView && designFooter}
+        <footer className={designView ? "page-footer design-support" : "page-footer"}><p>ClRUb is an independent student project, not affiliated with Rutgers University. Rutgers events come from getINVOLVED and Rutgers Recreation via Scarlet Sync; clubs come from their public profiles on The Arc.</p><p className="footer-links"><button className="inline-link" onClick={() => setAboutOpen(true)}>About ClRUb</button><a className="inline-link" href="/privacy">Privacy Policy</a>{SUPPORT_EMAIL && <a className="inline-link" href={`mailto:${SUPPORT_EMAIL}`}>Contact</a>}</p></footer>
       </>}
       </main>
     </div>
-    <nav className="tab-bar" aria-label="Main navigation">{NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={navView === item.id ? 'active' : ''} onClick={() => navigatePrimary(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={navView === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{user ? 'Profile' : 'Sign in'}</span></button></nav>
+    {!designView && <nav className="tab-bar" aria-label="Main navigation">{NAV.map(item => <button key={item.id} data-discover={item.id === 'discover'} className={navView === item.id ? 'active' : ''} onClick={() => navigatePrimary(item.id)} aria-current={navView === item.id ? 'page' : undefined}><item.icon size={22} strokeWidth={navView === item.id ? 2.3 : 1.9}/><span>{item.title}</span>{item.id === 'forums' && unreadTotal > 0 && <span className="unread-badge">{unreadTotal > 99 ? '99+' : unreadTotal}<span className="sr-only"> unread</span></span>}</button>)}<button className={view === 'profile' || view === 'officer' ? 'active' : ''} onClick={() => user ? go('profile') : setAuthOpen(true)} aria-current={view === 'profile' ? 'page' : undefined}><UserRound size={22} strokeWidth={view === 'profile' ? 2.3 : 1.9}/><span>{user ? 'Profile' : 'Sign in'}</span></button></nav>}
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <CircleHelp size={18}/> : <Check size={18}/>}<span>{toast.text}</span><button aria-label="Dismiss" onClick={() => setToast(null)}><X size={15}/></button></div>}
     {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} onSuccess={(next, isNew) => void authSuccess(next, isNew)}/>}
     {onboarding && user && <OnboardingDialog user={user} onClose={() => setOnboarding(false)} onSave={next => void profileSaved(next)}/>}

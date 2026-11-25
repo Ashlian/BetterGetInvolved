@@ -24,7 +24,7 @@ function hash(text: string) {
   return value >>> 0;
 }
 
-function identityFor(interests: string[]) {
+export function identityFor(interests: string[]) {
   const normalized = [...new Set(interests.map(value => value.trim().toLowerCase()).filter(Boolean))].sort();
   const seed = hash(JSON.stringify(normalized));
   const groups = rules.map(rule => ({title:rule.title, hits:normalized.filter(interest => rule.match.test(interest))}));

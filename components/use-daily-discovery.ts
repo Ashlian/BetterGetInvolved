@@ -4,7 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {dateKey, type Club, type Recommendation, type Saved} from '@/lib/api';
 import type {DeckAction} from './discover-deck';
 
-type Entry = Pick<Recommendation, 'id' | 'explanation' | 'reasons' | 'tags'>;
+type Entry = Pick<Recommendation, 'id' | 'explanation' | 'reasons' | 'tags'> & Partial<Pick<Recommendation, 'score'>>;
 type DailyRecord = {day: string; entries: Entry[]; outcomes: Partial<Record<string, DeckAction>>};
 type DailySession = {key: string; day: string; record: DailyRecord | null};
 const LIMIT = 5;
@@ -14,6 +14,7 @@ function readDaily(key: string, day: string): DailyRecord | null {
     const value = JSON.parse(localStorage.getItem(key) ?? 'null') as DailyRecord | null;
     if (!value || value.day !== day || !Array.isArray(value.entries) || !value.outcomes || typeof value.outcomes !== 'object') return null;
     const entries = value.entries.filter(item => item && typeof item.id === 'string' && typeof item.explanation === 'string'
+      && (item.score === undefined || Number.isFinite(item.score))
       && (!item.tags || Array.isArray(item.tags) && item.tags.every(tag => typeof tag === 'string'))
       && (!item.reasons || Array.isArray(item.reasons) && item.reasons.every(reason => typeof reason === 'string'))).slice(0, LIMIT);
     const unique = [...new Map(entries.map(item => [item.id, item])).values()];
@@ -59,7 +60,7 @@ export function useDailyDiscovery(account: string | undefined, now: number, rank
     if (!current || record || !ranked) return;
     const entries = [...new Map(ranked
       .filter(club => !excluded.has(club.id) && catalog.has(club.id))
-      .map(({id, explanation, reasons, tags}) => [id, {id, explanation, reasons, tags}])).values()].slice(0, LIMIT);
+      .map(({id, explanation, reasons, tags, score}) => [id, {id, explanation, reasons, tags, score}])).values()].slice(0, LIMIT);
     if (!entries.length) return;
     const latest = readDaily(key, day) ?? {day, entries, outcomes: {}};
     writeDaily(key, latest);

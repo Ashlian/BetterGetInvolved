@@ -1,8 +1,8 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
-import {AnimatePresence, motion, useReducedMotion, useInView} from 'motion/react';
-import {ArrowLeft, ArrowRight, Bookmark, Compass, Fingerprint, LoaderCircle} from 'lucide-react';
+import {useRef} from 'react';
+import {motion, useReducedMotion, useInView} from 'motion/react';
+import {ArrowRight, Bookmark, Compass, Fingerprint, LoaderCircle} from 'lucide-react';
 import {dateFormat, type Club} from '@/lib/api';
 import DiscoverDeck, {type DeckAction} from './discover-deck';
 import type {DailyDiscoveryState} from './use-daily-discovery';
@@ -73,53 +73,21 @@ export function DailyCover({name, now, daily, identity, availability, onStart, o
   </section>;
 }
 
-export function DailyDeck({daily, now, name, identity, campus, busy, modalOpen, onAction, onOpen, onHome, onExplore, onSaved, onDNA}: {
-  daily: DailyDiscoveryState; now: number; name?: string; identity?: string; campus?: string; busy: boolean; modalOpen: boolean;
+export function DailyDeck({daily, identity, campus, busy, modalOpen, onAction, onOpen, onHome, onExplore, onSaved, onDNA}: {
+  daily: DailyDiscoveryState; identity?: string; campus?: string; busy: boolean; modalOpen: boolean;
   onAction: (action: DeckAction, club: Club) => Promise<boolean>; onOpen: (club: Club) => void;
   onHome: () => void; onExplore: () => void; onSaved: () => void; onDNA: () => void;
 }) {
   const reduced = useReducedMotion();
-  const [intro, setIntro] = useState(daily.remaining.length > 0);
-  const title = useRef<HTMLHeadingElement>(null);
-  const opening = useRef<HTMLDivElement>(null);
   const reveal = reduced ? {duration:0} : {duration:.4, ease:[.22,1,.36,1] as const};
-
-  useEffect(() => {
-    title.current?.focus({preventScroll:true});
-  }, []);
-
-  useEffect(() => {
-    if (!intro) return;
-    const timer = window.setTimeout(() => {
-      if (!opening.current?.contains(document.activeElement)) setIntro(false);
-    }, reduced ? 0 : 1200);
-    return () => window.clearTimeout(timer);
-  }, [intro, reduced]);
-
-  return <section className={styles.dailyPage} aria-labelledby="daily-page-title">
-    <div className={styles.sessionBar}>
-      <button className={styles.back} onClick={onHome}><ArrowLeft size={17} aria-hidden="true"/>Back to home</button>
-      {daily.total > 0 && <DailyProgress daily={daily}/>}
-      <span className={styles.sessionDate}>{dateFormat(new Date(now), {month:'long', day:'numeric'})}</span>
-    </div>
-    <header className={styles.pageHeading}>
-      <h1 id="daily-page-title" ref={title} tabIndex={-1}>Daily <em>Discovery.</em></h1>
-    </header>
-    <AnimatePresence mode="wait">
-      {intro ? <motion.div key="opening" ref={opening} className={styles.sessionIntro}
-        initial={reduced ? false : {opacity:0}} animate={{opacity:1}}
-        exit={{opacity:0, scale:reduced ? 1 : 1.04}} transition={reveal}>
-        <div className={styles.introCopy}>
-          <p className={styles.overline}>{name ? `${name}’s daily picks` : 'Today’s picks'}</p>
-          <motion.p className={styles.introTitle} initial={reduced ? false : {y:20, opacity:0}} animate={{y:0, opacity:1}} transition={reveal}>See where<br/><em>today takes you.</em></motion.p>
-          <button className={styles.lightButton} onClick={() => {title.current?.focus({preventScroll:true}); setIntro(false);}}>Show my clubs<ArrowRight size={16} aria-hidden="true"/></button>
-        </div>
-        <DailyArtwork celebrate seed={artworkSeed(identity, daily.day)} shared/>
-      </motion.div> : <motion.div key="session" className={styles.sessionDeck}
-        initial={reduced ? false : {opacity:0, y:14}} animate={{opacity:1, y:0}} transition={reveal}>
-        {daily.total > 0 ? <DiscoverDeck key={daily.day} clubs={daily.remaining} campus={campus}
-          busy={busy} modalOpen={modalOpen} layout="swipe" onOpen={onOpen} onAction={onAction}
-          empty={<motion.div className={styles.completion}
+  const reviewed = daily.total - daily.remaining.length;
+  return <DiscoverDeck key={daily.day} clubs={daily.remaining} campus={campus}
+    busy={busy} modalOpen={modalOpen} layout="swipe" onOpen={onOpen} onAction={onAction}
+    design={{
+      label: daily.total ? `Daily Discovery · ${Math.min(reviewed + 1, daily.total)}/${daily.total}` : 'Daily Discovery',
+      controls: <><button onClick={onHome}>Back to home</button><button onClick={onExplore}>Explore more</button></>,
+    }}
+    empty={daily.total > 0 ? <motion.div className={styles.completion}
             initial={reduced ? false : {opacity:0, y:18}} animate={{opacity:1, y:0}} transition={reveal}>
             <DailyArtwork celebrate seed={artworkSeed(identity, daily.day)}/>
             <div className={styles.completionCopy}>
@@ -138,8 +106,5 @@ export function DailyDeck({daily, now, name, identity, campus, busy, modalOpen, 
                 <button onClick={onDNA}><Fingerprint size={16} aria-hidden="true"/>Your Rutgers DNA</button>
               </div>
             </div>
-          </motion.div>}/> : <p className={styles.emptyDaily} role="status">Today’s picks aren’t available here yet. Return home to check your recommendations.</p>}
-      </motion.div>}
-    </AnimatePresence>
-  </section>;
+          </motion.div> : <p className={styles.emptyDaily} role="status">Today’s picks aren’t available here yet. Return home to check your recommendations.</p>}/>;
 }

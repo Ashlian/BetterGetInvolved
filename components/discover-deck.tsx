@@ -5,10 +5,11 @@ import {animate, motion, useMotionValue, useReducedMotion, useTransform} from 'm
 import {Bookmark, Check, ExternalLink, Heart, Layers, List, Sparkles, X} from 'lucide-react';
 import {cleanName, type Club, type Recommendation} from '@/lib/api';
 import {CampusMark, ClubArt} from './visuals';
+import {clubPhoto} from './campus-design';
 import styles from './discover-deck.module.css';
 
 export type DeckAction = 'pass' | 'save' | 'follow';
-type DeckClub = Club & Partial<Pick<Recommendation, 'explanation' | 'reasons' | 'tags'>>;
+type DeckClub = Club & Partial<Pick<Recommendation, 'explanation' | 'reasons' | 'tags' | 'score'>>;
 const spring = {type: 'spring', stiffness: 330, damping: 32} as const;
 const still = {duration: 0};
 const LIST_PAGE_SIZE = 24;
@@ -28,7 +29,7 @@ type Drag = {
   samples: {x: number; time: number}[];
 };
 
-export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, onAction, busy, modalOpen, empty, progress, fictional = false}: {
+export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, onAction, busy, modalOpen, empty, progress, fictional = false, design}: {
   clubs: DeckClub[];
   campus?: string;
   layout: 'swipe' | 'list';
@@ -40,6 +41,7 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
   empty: React.ReactNode;
   progress?: React.ReactNode;
   fictional?: boolean;
+  design?: {label: string; controls: React.ReactNode};
 }) {
   const [listLimit, setListLimit] = useState(LIST_PAGE_SIZE);
   const [pinned, setPinned] = useState<string>();
@@ -102,7 +104,7 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
       setAdvancing(true);
       const direction = action === 'pass' ? -1 : 1;
       const distance = window.innerWidth + (card.current?.offsetWidth ?? 0) / 2;
-      exit = action === 'save'
+      exit = action === 'save' && !design
         ? Promise.all([animate(y, -78, spring), animate(opacity, 0, {duration: .24})])
         : Promise.all([
           animate(x, direction * distance, {type: 'spring', stiffness: 250, damping: 28, velocity: direction * Math.min(1800, Math.abs(velocity)), restDelta: 35, restSpeed: 240}),
@@ -144,6 +146,9 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
       if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
       if (!(event.target instanceof HTMLElement) || event.target.closest('input,textarea,select,[contenteditable],summary,[role="dialog"]')) return;
       const action = actions.find(item => item.key === event.key);
+      if (design && (event.key === 'ArrowRight' || event.key === 'ArrowDown')) {
+        event.preventDefault(); void choose(event.key === 'ArrowRight' ? 'save' : 'follow', active); return;
+      }
       if (action) {event.preventDefault(); void choose(action.id, active);}
     };
     document.addEventListener('keydown', shortcut);
@@ -194,13 +199,63 @@ export default function DiscoverDeck({clubs, campus, layout, onLayout, onOpen, o
     const projected = dx + velocity * .10;
     const flick = Math.abs(dx) >= 25 && Math.abs(velocity) >= 480 && Math.abs(projected) >= threshold && Math.sign(velocity) === Math.sign(dx);
     if (!cancelled && active && !busy && !modalOpen && (Math.abs(dx) >= threshold || flick)) {
-      void choose(dx < 0 ? 'pass' : 'follow', active, velocity);
+      void choose(dx < 0 ? 'pass' : design ? 'save' : 'follow', active, velocity);
     } else {
       springBack();
     }
   }
 
   const disabled = busy || pending !== null || dragging;
+  if (design && layout === 'swipe') {
+    const accents = ['#e95843', '#b99bd7', '#efb59c'];
+    const accent = active ? accents[Array.from(active.id).reduce((sum, character) => sum + character.charCodeAt(0), 0) % accents.length] : accents[0];
+    return <section className="discover-page" style={{'--deck-accent': accent} as CSSProperties} aria-labelledby="discover-title">
+      <div className="discover-intro">
+        <p className="section-index">{design.label}</p>
+        <h1 id="discover-title">Something tells us<br/><i>you’ll get along.</i></h1>
+        {active && <p className="drag-instruction">Drag the card. Trust your instinct.</p>}
+        <div className="discover-controls">{design.controls}</div>
+      </div>
+      {active ? <>
+        <div className="deck" aria-busy={pending !== null}>
+          {next.length > 1 && <div className="design-club-card card-back back-two" aria-hidden="true"/>}
+          {next.length > 0 && <div className="design-club-card card-back back-one" aria-hidden="true"/>}
+          <motion.article key={active.id} ref={card} className={`design-club-card active-card ${dragging ? 'dragging' : ''}`}
+            style={{x, y, opacity, rotate: reduce ? 0 : rotation}}
+            onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={event => endDrag(event)}
+            onPointerCancel={event => endDrag(event, true)}
+            onLostPointerCapture={event => {if (event.target === event.currentTarget) endDrag(event, true);}}
+            onPointerLeave={event => {if (!drag.current?.active) endDrag(event, true);}}>
+            <img src={clubPhoto} alt="" draggable={false}/>
+            <div className="card-shade"/>
+            <div className="card-top">
+              {onOpen && <button disabled={disabled} onClick={() => onOpen(active)} aria-label={`Club profile for ${cleanName(active.name)}`}>CLUB PROFILE</button>}
+              {active.score !== undefined && <b title="Relative recommendation score">{Math.round(active.score * 100)}% RELATIVE</b>}
+            </div>
+            <div className="card-content">
+              <p>{active.category}{active.verification === 'demo' ? ' · Demo organization' : ''}</p>
+              <h2>{cleanName(active.name)}</h2>
+              <span>{active.explanation || active.mission || active.description}</span>
+            </div>
+          </motion.article>
+        </div>
+        <div className="deck-actions">
+          {([
+            ['pass', 'Pass', '×', 'ArrowLeft'],
+            ['save', 'Save', '＋', 'ArrowRight'],
+            ['follow', 'Follow', '↗', 'ArrowDown'],
+          ] as const).map(([action, label, symbol, shortcut]) => <button key={action} type="button"
+            className={action === 'save' ? 'primary-action' : undefined}
+            aria-keyshortcuts={shortcut} aria-disabled={disabled} onClick={() => void choose(action, active)}>
+            <span aria-hidden="true">{symbol}</span>{label}
+          </button>)}
+        </div>
+        <p className="swipe-help">Swipe left to pass · right to save</p>
+      </> : <div className="discover-empty">{empty}</div>}
+      <p className="sr-only" role="status">{pending ? `${pending} in progress` : active && cleanName(active.name)}</p>
+    </section>;
+  }
+
   return <div className={styles.deckPanel}>
     {active && <div className={styles.toolbar}>
       {progress ?? <span className={styles.remaining}>{clubs.length} {clubs.length === 1 ? 'club' : 'clubs'} to explore</span>}

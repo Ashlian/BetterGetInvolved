@@ -80,9 +80,9 @@ export default function Studio() {
           onOpen={setDetail} onBookmark={club => void choose('save',club)} onFollow={club => void choose('follow',club)} onDismiss={club => void choose('pass',club)}
           onProfile={showSaved} onEvents={() => go('home')} onSocial={() => go('home')} onOpenEvent={() => undefined} onSaveEvent={() => undefined}/>
       </>}
-      {view === 'daily' && <DailyDeck daily={daily} now={now} name={user.display_name} identity={user.id} campus={user.campus}
+      {view === 'daily' && <div className="campus-design"><DailyDeck daily={daily} identity={user.id} campus={user.campus}
         busy={false} modalOpen={!!detail} onAction={(action,club) => choose(action,club,true)} onOpen={setDetail}
-        onHome={() => go('home')} onExplore={() => browse('')} onSaved={showSaved} onDNA={() => go('dna')}/>}
+        onHome={() => go('home')} onExplore={() => browse('')} onSaved={showSaved} onDNA={() => go('dna')}/> </div>}
       {view === 'dna' && <RutgersDNA user={user} followed={followed} onEdit={() => setEditing(true)} onRelated={browse} onClub={setDetail} onHome={() => go('home')}/>}
       {view === 'deck' && <>
         <button className="text-button" onClick={() => go('home')}>Back to the demo homepage</button>
