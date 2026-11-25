@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 // Set NEXT_PUBLIC_SUPPORT_EMAIL in Vercel (and .env locally); the address isn't kept in the code.
 const CONTACT = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || '';
-const UPDATED = 'November 24, 2026';
+const UPDATED = 'November 25, 2026';
 
 export default function PrivacyPage() {
   return <main className="legal-page">
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
         <h3>Collected automatically</h3>
         <ul>
           <li><strong>A sign-in cookie</strong> that keeps you signed in for up to 7 days. The server stores only a scrambled (hashed) copy of it.</li>
-          <li><strong>A browser setting</strong> that remembers whether you last used Discover or For you mode. It stays in your browser.</li>
+          <li><strong>Browser settings</strong> that remember whether you last used Discover or For you mode, your light or dark theme, and today’s Daily Discovery clubs. They stay in your browser.</li>
           <li><strong>IP addresses</strong>, which ClRUb holds in memory for about a minute to limit abusive request rates. Our hosting provider also keeps standard request logs.</li>
         </ul>
       </section>
@@ -78,6 +78,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Google</strong> for sign-in.</li>
           <li><strong>Vercel</strong> for hosting.</li>
+          <li><strong>OpenStreetMap</strong> for the campus map on Home and Orbit. Your browser loads the map images directly from OpenStreetMap, which receives your IP address and the area being viewed, but not your account or location.</li>
           <li><strong>Supabase</strong> for the database where your account and activity are stored.</li>
         </ul>
         <p>Club information comes from public student organization profiles on The Arc. Rutgers event listings come from Rutgers getINVOLVED and Rutgers Recreation through Scarlet Sync. None of your data is sent to those sources.</p>
